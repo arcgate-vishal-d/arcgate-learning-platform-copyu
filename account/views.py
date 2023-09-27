@@ -2,10 +2,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import AdminViewSerializer
 
+from .serializers import AdminViewSerializer
 from account.serializers import LoginSerializer, AdminViewSerializer
 from account.models import UserData
+from drf_yasg.utils import swagger_auto_schema
 
 
 def get_tokens_for_user(user):
@@ -18,6 +19,7 @@ def get_tokens_for_user(user):
 
 
 class Login(APIView):
+    @swagger_auto_schema(request_body=LoginSerializer)
     def post(self, request, *args, **kwargs):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

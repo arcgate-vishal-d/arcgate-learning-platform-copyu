@@ -13,36 +13,27 @@ class LoginSerializer(serializers.Serializer):
         username = data.get("username")
         password = data.get("password")
 
-        # Username validations
-        if not re.match("^[a-z0-9_]{4,20}$", username):
-            raise ValidationError(
-                "Username must contain only small letters, numbers, and underscores and be between 6 to 20 characters long."
-            )
-
-        # Password validation
-        min_length = 8
-        if len(password) < min_length:
+        if not re.match("^[a-z0-9_]{5,20}$", username):
             raise serializers.ValidationError(
-                f"Password must be at least {min_length} characters long."
+                "Username must contain only small letters, numbers, and underscores and be between 5 to 20 characters long."
             )
+        if password:
+            regular_expression = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,20}$"
 
-        if not any(char.isupper() for char in password) or not any(
-            char.islower() for char in password
-        ):
-            raise serializers.ValidationError(
-                "Password must contain both uppercase and lowercase letters."
-            )
+            # compiling regex to create regex object
 
-        if not any(char.isdigit() for char in password):
-            raise serializers.ValidationError(
-                "Password must contain at least one numeric character."
-            )
+            pattern = re.compile(regular_expression)
 
-        special_characters = "!@#$%^&*()-_+=[]{}|;:,.<>?/'\""
-        if not any(char in special_characters for char in password):
-            raise serializers.ValidationError(
-                "Password must contain at least one special character."
-            )
+            # searching regex
+
+            valid1 = re.search(pattern, password)
+
+            # validating conditions
+
+            if not valid1:
+                raise serializers.ValidationError(
+                    "Password must be at least 8 characters long, uppercase and lowercase letters,one numeric character and special character"
+                )
 
         user = authenticate(username=username, password=password)
 

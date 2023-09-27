@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 import environ
 import sentry_sdk
@@ -32,6 +31,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_yasg",
     "account",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
@@ -42,12 +42,12 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
 ]
 
-SWAGGER_SETTINGS = {
-    "DEFAULT_AUTO_SCHEMA_CLASS": "rest_framework_swagger.renderers.OpenAPIRenderer",
-    "DEFAULT_INFO": "your_project.api.urls.api_info",
-}
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 ROOT_URLCONF = "arc_learning_paltform.urls"
 
