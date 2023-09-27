@@ -1,9 +1,8 @@
+import re
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework.exceptions import ValidationError
-from django.core.validators import EmailValidator
-from django.contrib.auth.models import User
-from account.models import User_data
+from account.models import UserData, Project, UserPermission
 
 
 class LoginSerializer(serializers.Serializer):
@@ -13,6 +12,12 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         username = data.get("username")
         password = data.get("password")
+
+        # Username validations
+        if not re.match("^[a-z0-9_]{4,20}$", username):
+            raise ValidationError(
+                "Username must contain only small letters, numbers, and underscores and be between 6 to 20 characters long."
+            )
 
         # Password validation
         min_length = 8
@@ -48,7 +53,23 @@ class LoginSerializer(serializers.Serializer):
         return data
 
 
-class AdminViewSerializer(serializers.ModelSerializer):
+class ProjectsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User_data
+        model = Project
         fields = "__all__"
+
+
+class PermissionsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserPermission
+        fields = ["read", "write", "delete", "update"]
+
+
+class AdminViewSerializer(serializers.ModelSerializer):
+    permission = PermissionsSerializer()
+
+    class Meta:
+        model = UserData
+        fields = [
+            "permission",
+        ]

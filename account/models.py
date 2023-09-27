@@ -22,7 +22,7 @@ class Project(AbstractTable):
         return str(self.project_name)
 
 
-class User_permission(AbstractTable):
+class UserPermission(AbstractTable):
     emp_id = models.CharField(max_length=100)
     read = models.BooleanField(default=False)
     write = models.BooleanField(default=False)
@@ -51,7 +51,7 @@ class Role(AbstractTable):
         (AGENT, "Agent"),
     )
     role = models.IntegerField(choices=ROLE_CHOICES)
-    permission = models.ForeignKey(User_permission, on_delete=models.CASCADE)
+    permission = models.ForeignKey(UserPermission, on_delete=models.CASCADE)
 
     class Meta:
         db_table = "roles"
@@ -69,13 +69,13 @@ class Role(AbstractTable):
         return f"{self.get_role_display_str()}"
 
 
-class User_data(AbstractTable):
+class UserData(AbstractTable):
     users = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
     )
     permission = models.ForeignKey(
-        User_permission,
+        UserPermission,
         on_delete=models.CASCADE,
     )
     project = models.ForeignKey(

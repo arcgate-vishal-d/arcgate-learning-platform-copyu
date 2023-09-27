@@ -2,10 +2,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth.models import User
-from account.serializers import LoginSerializer, AdminViewSerializer
+from .serializers import AdminViewSerializer
 
-from account.models import User_data
+from account.serializers import LoginSerializer, AdminViewSerializer
+from account.models import UserData
 
 
 def get_tokens_for_user(user):
@@ -27,9 +27,34 @@ class Login(APIView):
 
 
 class AdminView(APIView):
-
     def get(self, request, *args, **kwargs):
-        # users = User.objects.all()
-        users = User_data.objects.all()
-        serializer = AdminViewSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        users = UserData.objects.all()
+        serializer = AdminViewSerializer(users, many=True).data
+
+        try:
+            return Response(
+                {
+                    "message": "sucess",
+                    "error": False,
+                    "code": 200,
+                    "result": {
+                        "UserData": serializer,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    "message": "fail",
+                    "error": True,
+                    "code": 500,
+                    "result": {
+                        "totalItems": 0,
+                        "items": [],
+                        "totalPages": 0,
+                        "currentPage": 0,
+                    },
+                }
+            )
