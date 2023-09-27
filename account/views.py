@@ -2,11 +2,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from .serializers import AdminViewSerializer
+from drf_yasg.utils import swagger_auto_schema
 from account.serializers import LoginSerializer, AdminViewSerializer
 from account.models import UserData
-from drf_yasg.utils import swagger_auto_schema
+from account import messages
 
 
 def get_tokens_for_user(user):
@@ -30,13 +30,13 @@ class Login(APIView):
 
 class AdminView(APIView):
     def get(self, request, *args, **kwargs):
-        users = UserData.objects.all()
-        serializer = AdminViewSerializer(users, many=True).data
-
+        
+        users_info = UserData.objects.all()
+        serializer = AdminViewSerializer(users_info, many=True).data
         try:
             return Response(
                 {
-                    "message": "sucess",
+                    "message": messages.get_success_message(),
                     "error": False,
                     "code": 200,
                     "result": {
@@ -49,7 +49,7 @@ class AdminView(APIView):
         except Exception as e:
             return Response(
                 {
-                    "message": "fail",
+                    "message": messages.get_failed_message(),
                     "error": True,
                     "code": 500,
                     "result": {

@@ -82,7 +82,6 @@ class UserData(AbstractTable):
         Project,
         on_delete=models.CASCADE,
     )
-
     role = models.ForeignKey(
         Role,
         on_delete=models.CASCADE,

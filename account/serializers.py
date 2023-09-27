@@ -58,9 +58,14 @@ class PermissionsSerializer(serializers.ModelSerializer):
 
 class AdminViewSerializer(serializers.ModelSerializer):
     permission = PermissionsSerializer()
+    username = serializers.CharField(source="users.username")
+    user_id = serializers.CharField(source="users.id")
+
 
     class Meta:
         model = UserData
         fields = [
-            "permission",
+            "username",
+            'user_id',
+            "permission",   
         ]
