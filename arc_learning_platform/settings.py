@@ -30,7 +30,6 @@ INSTALLED_APPS = [
     # external apps
     "rest_framework",
     "drf_yasg",
-    "account",
     "corsheaders",
 ]
 
