@@ -8,6 +8,7 @@ from account.apis.serializers import LoginSerializer, AdminViewSerializer
 from account.models import UserData
 from account.apis import messages
 from django.contrib.auth.models import User
+from rest_framework.permissions import IsAuthenticated
 
 
 def get_tokens_for_user(user):
@@ -26,12 +27,13 @@ class Login(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         token = get_tokens_for_user(user)
-        return Response({"token": token}, status=status.HTTP_201_CREATED)
+        return Response({"token": token}, status=status.HTTP_200_OK)
 
 
 class AdminView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
-        
         users_info = UserData.objects.all()
         serializer = AdminViewSerializer(users_info, many=True).data
         try:
@@ -40,7 +42,7 @@ class AdminView(APIView):
                     "message": messages.get_success_message(),
                     "error": False,
                     "code": 200,
-                    "result": serializer
+                    "result": serializer,
                 },
                 status=status.HTTP_200_OK,
             )
@@ -51,11 +53,6 @@ class AdminView(APIView):
                     "message": messages.get_failed_message(),
                     "error": True,
                     "code": 500,
-                    "result": {
-                        "totalItems": 0,
-                        "items": [],
-                        "totalPages": 0,
-                        "currentPage": 0,
-                    },
+                    "result": {[]},
                 }
             )
