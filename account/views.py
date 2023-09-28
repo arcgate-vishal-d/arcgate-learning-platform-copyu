@@ -7,6 +7,7 @@ from drf_yasg.utils import swagger_auto_schema
 from account.serializers import LoginSerializer, AdminViewSerializer
 from account.models import UserData
 from account import messages
+from django.contrib.auth.models import User
 
 
 def get_tokens_for_user(user):
@@ -39,9 +40,7 @@ class AdminView(APIView):
                     "message": messages.get_success_message(),
                     "error": False,
                     "code": 200,
-                    "result": {
-                        "UserData": serializer,
-                    },
+                    "result": serializer
                 },
                 status=status.HTTP_200_OK,
             )

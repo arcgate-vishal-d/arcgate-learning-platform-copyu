@@ -44,12 +44,12 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-SWAGGER_SETTINGS = {
-    "DEFAULT_AUTO_SCHEMA_CLASS": "rest_framework_swagger.renderers.OpenAPIRenderer",
-    "DEFAULT_INFO": "your_project.api.urls.api_info",
-}
+# SWAGGER_SETTINGS = {
+#     "DEFAULT_AUTO_SCHEMA_CLASS": "rest_framework_swagger.renderers.OpenAPIRenderer",
+#     "DEFAULT_INFO": "your_project.api.urls.api_info",
+# }
 
-ROOT_URLCONF = "arc_learning_paltform.urls"
+ROOT_URLCONF = "arc_learning_platform.urls"
 
 TEMPLATES = [
     {
@@ -67,7 +67,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "arc_learning_paltform.wsgi.application"
+WSGI_APPLICATION = "arc_learning_platform.wsgi.application"
 
 
 # Database

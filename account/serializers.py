@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework.exceptions import ValidationError
 from account.models import UserData, Project, UserPermission
-
+from django.contrib.auth.models import User
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -18,7 +18,7 @@ class LoginSerializer(serializers.Serializer):
                 "Username must contain only small letters, numbers, and underscores and be between 5 to 20 characters long."
             )
         if password:
-            regular_expression = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{6,20}$"
+            regular_expression = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{8,20}$"
 
             # compiling regex to create regex object
 
@@ -36,7 +36,7 @@ class LoginSerializer(serializers.Serializer):
                 )
 
         user = authenticate(username=username, password=password)
-
+        print(user.is_active)
         if not user:
             raise serializers.ValidationError("Invalid credentials")
 
@@ -59,13 +59,13 @@ class PermissionsSerializer(serializers.ModelSerializer):
 class AdminViewSerializer(serializers.ModelSerializer):
     permission = PermissionsSerializer()
     username = serializers.CharField(source="users.username")
-    user_id = serializers.CharField(source="users.id")
-
-
+    emp_id = serializers.CharField(source="permission.id")
+    
     class Meta:
         model = UserData
         fields = [
             "username",
-            'user_id',
-            "permission",   
+            "emp_id",
+            "permission",
+            "users",  
         ]
