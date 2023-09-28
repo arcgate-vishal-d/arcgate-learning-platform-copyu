@@ -4,9 +4,9 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import AdminViewSerializer
 from drf_yasg.utils import swagger_auto_schema
-from account.serializers import LoginSerializer, AdminViewSerializer
+from account.apis.serializers import LoginSerializer, AdminViewSerializer
 from account.models import UserData
-from account import messages
+from account.apis import messages
 from django.contrib.auth.models import User
 
 
