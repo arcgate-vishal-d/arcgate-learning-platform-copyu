@@ -7,8 +7,6 @@ from drf_yasg.utils import swagger_auto_schema
 from account.apis.serializers import LoginSerializer, AdminViewSerializer
 from account.models import UserData
 from account.apis import messages
-from django.contrib.auth.models import User
-from rest_framework.permissions import IsAuthenticated
 
 
 def get_tokens_for_user(user):
@@ -31,7 +29,7 @@ class Login(APIView):
 
 
 class AdminView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         users_info = UserData.objects.all()

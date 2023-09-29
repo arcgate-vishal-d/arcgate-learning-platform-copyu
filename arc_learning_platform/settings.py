@@ -2,7 +2,6 @@ from pathlib import Path
 import environ
 import sentry_sdk
 
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -16,7 +15,6 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-
 
 # Application definition
 
@@ -43,11 +41,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
-
-# SWAGGER_SETTINGS = {
-#     "DEFAULT_AUTO_SCHEMA_CLASS": "rest_framework_swagger.renderers.OpenAPIRenderer",
-#     "DEFAULT_INFO": "your_project.api.urls.api_info",
-# }
 
 ROOT_URLCONF = "arc_learning_platform.urls"
 
@@ -129,11 +122,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 sentry_sdk.init(
     dsn=env("DSN"),
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
     traces_sample_rate=1.0,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,
 )
