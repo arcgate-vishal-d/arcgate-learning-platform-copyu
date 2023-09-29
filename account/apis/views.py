@@ -8,7 +8,6 @@ from account.apis.serializers import LoginSerializer, AdminViewSerializer
 from account.models import UserData
 from account.apis import messages
 
-
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -29,7 +28,6 @@ class Login(APIView):
 
 
 class AdminView(APIView):
-    # permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         users_info = UserData.objects.all()
