@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate
 from rest_framework.exceptions import ValidationError
 from account.models import UserData, Project, UserPermission
 from django.contrib.auth.models import User
+from rest_framework import status
 
 
 class LoginSerializer(serializers.Serializer):
@@ -29,7 +30,6 @@ class LoginSerializer(serializers.Serializer):
                 )
 
         user = authenticate(username=username, password=password)
-        print(user.is_active)
         if not user:
             raise serializers.ValidationError("Invalid credentials")
 

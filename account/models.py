@@ -23,7 +23,7 @@ class Project(AbstractTable):
 
 
 class UserPermission(AbstractTable):
-    emp_id = models.CharField(max_length=100)
+    emp_id = models.CharField(max_length=100, unique=True)
     read = models.BooleanField(default=False)
     write = models.BooleanField(default=False)
     delete = models.BooleanField(default=False)
