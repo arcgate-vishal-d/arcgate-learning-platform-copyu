@@ -40,24 +40,27 @@ class LoginSerializer(serializers.Serializer):
 class ProjectsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
-        fields = "__all__"
+        fields = ["project_name"]
 
 
 class PermissionsSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserPermission
-        fields = ["read", "write", "delete", "update"]
+        fields = ["read", "delete", "update"]
 
 
 class AdminViewSerializer(serializers.ModelSerializer):
     permission = PermissionsSerializer()
     username = serializers.CharField(source="users.username")
-    emp_id = serializers.CharField(source="permission.id")
+    emp_id = serializers.CharField(source="permission.emp_id")
+    project = serializers.CharField(source="project.project_name")
 
     class Meta:
         model = UserData
         fields = [
             "username",
             "emp_id",
+            "project",
+            "status",
             "permission",
         ]

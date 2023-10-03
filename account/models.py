@@ -79,13 +79,14 @@ class UserData(AbstractTable):
         on_delete=models.CASCADE,
     )
     project = models.ForeignKey(
-        Project,
-        on_delete=models.CASCADE,
+        Project, on_delete=models.CASCADE, related_name="user_data"
     )
     role = models.ForeignKey(
         Role,
         on_delete=models.CASCADE,
     )
+    STATUS_CHOICES = ((1, "Active"), (0, "Inactive"))
+    status = models.IntegerField(choices=STATUS_CHOICES, default=False)
 
     class Meta:
         db_table = "user_datas"
