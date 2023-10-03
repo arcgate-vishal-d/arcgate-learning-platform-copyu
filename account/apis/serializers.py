@@ -1,9 +1,7 @@
 import re
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from rest_framework.exceptions import ValidationError
 from account.models import UserData, Project, UserPermission
-from django.contrib.auth.models import User
 
 
 class LoginSerializer(serializers.Serializer):
@@ -29,7 +27,6 @@ class LoginSerializer(serializers.Serializer):
                 )
 
         user = authenticate(username=username, password=password)
-        print(user.is_active)
         if not user:
             raise serializers.ValidationError("Invalid credentials")
 
@@ -50,6 +47,7 @@ class PermissionsSerializer(serializers.ModelSerializer):
 
 
 class AdminViewSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
     permission = PermissionsSerializer()
     username = serializers.CharField(source="users.username")
     emp_id = serializers.CharField(source="permission.emp_id")
@@ -64,3 +62,6 @@ class AdminViewSerializer(serializers.ModelSerializer):
             "status",
             "permission",
         ]
+
+    def get_status(self, obj):
+        return "active" if obj.status == 1 else "inactive"
