@@ -5,7 +5,7 @@ from rest_framework import status
 
 from rest_framework.test import APIClient
 from account.models import Project, UserPermission, Role, UserData
-from account.apis.serializers import AdminViewSerializer
+from account.apis.serializers import UserListingSerializer
 
 
 class LoginTestCase(TestCase):

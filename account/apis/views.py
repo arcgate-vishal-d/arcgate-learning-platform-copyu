@@ -3,9 +3,9 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.pagination import PageNumberPagination
-from .serializers import AdminViewSerializer
+from .serializers import UserListingSerializer
 from drf_yasg.utils import swagger_auto_schema
-from account.apis.serializers import LoginSerializer, AdminViewSerializer
+from account.apis.serializers import LoginSerializer, UserListingSerializer
 from account.models import UserData
 from account.apis import messages
 from account.apis.pagination import PaginationHandlerMixin
@@ -35,7 +35,7 @@ class BasicPagination(PageNumberPagination):
     page_size_query_param = "limit"
 
 
-class AdminView(APIView, PaginationHandlerMixin):
+class UserListing(APIView, PaginationHandlerMixin):
     pagination_class = BasicPagination
 
     def get(self, request, *args, **kwargs):
@@ -84,11 +84,11 @@ class AdminView(APIView, PaginationHandlerMixin):
         page = self.paginate_queryset(users_info)
 
         if page is not None:
-            serializer = AdminViewSerializer(page, many=True).data
+            serializer = UserListingSerializer(page, many=True).data
             return self.get_paginated_response(serializer)
 
         try:
-            serializer = AdminViewSerializer(users_info, many=True).data
+            serializer = UserListingSerializer(users_info, many=True).data
             return Response(
                 {
                     "message": messages.get_success_message(),

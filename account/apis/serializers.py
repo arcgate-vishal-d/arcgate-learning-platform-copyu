@@ -49,7 +49,7 @@ class PermissionsSerializer(serializers.ModelSerializer):
         fields = ["read", "delete", "update"]
 
 
-class AdminViewSerializer(serializers.ModelSerializer):
+class UserListingSerializer(serializers.ModelSerializer):
     permission = PermissionsSerializer()
     username = serializers.CharField(source="users.username")
     emp_id = serializers.CharField(source="permission.emp_id")
