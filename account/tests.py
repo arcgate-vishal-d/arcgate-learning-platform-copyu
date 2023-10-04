@@ -2,6 +2,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 from rest_framework import status
+from rest_framework.test import APIClient
+from account.models import Project, UserPermission, Role, UserData
 
 
 class LoginTestCase(TestCase):
@@ -16,19 +18,12 @@ class LoginTestCase(TestCase):
         self.assertIn("token", response.data)
 
 
-from rest_framework.test import APIClient
-from account.models import Project, UserPermission, Role, UserData
-from account.apis.serializers import AdminViewSerializer
-
-
-class AdminViewTestCase(TestCase):
+class UserListingTestCase(TestCase):
     def setUp(self):
-        # Create a test user
         self.user = User.objects.create_user(
             username="testuser", password="testpassword"
         )
 
-        # Create some test data
         self.project = Project.objects.create(
             project_name="testProject", project_slug="test-project"
         )
@@ -40,73 +35,49 @@ class AdminViewTestCase(TestCase):
         )
         self.user_data = UserData.objects.create(
             users=self.user,
+            fullName= "Test",
             permission=self.permission,
             project=self.project,
             role=self.role,
             status=1,
         )
 
-    def test_admin_view_search(self):
+    def test_admin_view_search_without_result(self):
         client = APIClient()
-        # Define the URL for your API endpoint
-        url = "/api/v1/user/data/"  # Replace with your actual URL
 
-        # Make a GET request without authentication and with search query that doesn't match any results
+        url = "/api/v1/user/data/"
+
         response = client.get(url, {"search": "non-existent-query"})
 
-        # Assert that the response status code is 204 (No Content) when no results are found
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    # def test_admin_view_search_no_results(self):
-    #     # Authenticate the user
-    #     self.client.force_authenticate(user=self.user)
+    def test_admin_view_search_with_result(self):
+        client = APIClient()
 
-    #     # Define the URL for your API endpoint
-    #     url = reverse('UserData')  # Use the name of the view if you have one
+        url = "/api/v1/user/data/"
 
-    #     # Make a GET request with a search query that should return no results
-    #     response = self.client.get(url, {'search': 'nonexistentuser'})
+        response = client.get(url, {"search": "testProject", "fullName": "Tet"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    #     # Assert that the response has a 204 status code (No Content)
-    #     self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-
-    # def test_admin_view_search_with_results(self):
-    #     # Create some UserData instances that match the search criteria
-    #     # Replace this with your actual data creation logic
-    #     UserData.objects.create(
-    #         username="test_user1", emp_id="emp-001", project="ProjectA", status="active"
-    #     )
-    #     UserData.objects.create(
-    #         username="test_user2",
-    #         emp_id="emp-002",
-    #         project="ProjectB",
-    #         status="inactive",
-    #     )
-
-    #     client = APIClient()
-    #     # Define the URL for your API endpoint
-    #     url = "/api/v1/user/data/"  # Replace with your actual URL
-
-    #     # Make a GET request without authentication and with a search query that matches results
-    #     response = client.get(url, {"search": "test_user", "ordering": "-id"})
-
-    #     # Assert that the response status code is 200 (OK) when matching results are found
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    # You can add more assertions to check the response data and structure as needed
     def test_admin_view_search_with_results(self):
         client = APIClient()
-        # Define the URL for your API endpoint
-        url = "/api/v1/user/data/"  # Replace with your actual URL
 
-        # Make a GET request with a search query that matches some results
-        # response = client.get(
-        #     url, {"search": "testUser"}
-        # )  # Adjust the search query as needed
-        response = client.get(url, {"search": "non-existent-query"})
+        url = "/api/v1/user/data/"
 
-        # Check that the response status code is 200 OK
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = client.get(url, {"project": "testProject"})
 
-    # Add additional assertions to check the content of the response if needed
-    # Example: self.assertEqual(len(response.data['result']), expected_result_count)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_admin_view_ordering_invalid_field(self):
+        client = APIClient()
+
+        url = "/api/v1/user/data/"
+
+        response = client.get(url, {"ordering": "invalid_field"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_admin_view_ordering(self):
+        client = APIClient()
+        url = "/api/v1/user/data/"
+        response = client.get(url, {"ordering": "-id"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

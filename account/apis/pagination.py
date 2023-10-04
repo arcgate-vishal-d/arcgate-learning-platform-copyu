@@ -5,9 +5,9 @@ from account.apis import messages
 
 
 class CustomPagination(pagination.PageNumberPagination):
-    page_size = 3
+    page_size = 50
     page_size_query_param = "page_size"
-    max_page_size = 50
+    max_page_size = 100
     page_query_param = "p"
     ordering = "id"
 
@@ -16,10 +16,10 @@ class CustomPagination(pagination.PageNumberPagination):
 
         valid_ordering_fields = [
             "project__project_name",
-            "user_permission__emp_id",
+            "permission__emp_id",
             "status",
             "users__username",
-            "id",
+            "fullName" "id",
         ]
         if ordering.lstrip("-") not in valid_ordering_fields:
             ordering = "id"
