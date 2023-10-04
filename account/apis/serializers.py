@@ -66,3 +66,24 @@ class AdminViewSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         return "active" if obj.status == 1 else "inactive"
+
+
+    def update(self, instance, validated_data):
+        print(validated_data)
+
+        instance.fullName = validated_data.get('fullName', instance.fullName)
+        # instance.emp_id = validated_data.get('emp_id', instance.emp_id)
+        # instance.project = validated_data.get('project', instance.project)
+        # instance.status = validated_data.get('status', instance.status)
+    
+        permission_data = validated_data.get('permission')
+        if permission_data:
+            permission_instance = instance.permission
+
+            for attr, value in permission_data.items():
+                setattr(permission_instance, attr, value)
+
+            permission_instance.save()
+    
+        instance.save()
+        return instance

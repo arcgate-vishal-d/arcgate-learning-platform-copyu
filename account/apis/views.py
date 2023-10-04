@@ -3,12 +3,14 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.pagination import PageNumberPagination
+from rest_framework import generics
+
 from .serializers import AdminViewSerializer, LoginSerializer
 from drf_yasg.utils import swagger_auto_schema
 from account.models import UserData
 from account.apis import messages
 from account.apis.pagination import PaginationHandlerMixin
-
+from account.apis.permissions import IsAdminOrReadOnly
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -35,6 +37,8 @@ class BasicPagination(PageNumberPagination):
 
 class AdminView(APIView, PaginationHandlerMixin):
     pagination_class = BasicPagination
+
+    permission_classes = [IsAdminOrReadOnly]
 
     def get(self, request, *args, **kwargs):
         search_query = self.request.query_params.get("search")
@@ -112,3 +116,29 @@ class AdminView(APIView, PaginationHandlerMixin):
                 },
                 status=status.HTTP_200_OK,
             )
+
+
+# class userDetail(generics.RetrieveUpdateDestroyAPIView):
+#     queryset = UserData.objects.all()
+#     serializer_class = AdminViewSerializer
+   
+
+
+class userDetail(APIView):
+
+    def get(self, request, pk):
+        user_detail = UserData.objects.get(pk=pk)
+        serializer = AdminViewSerializer(user_detail)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk):
+        user_detail = UserData.objects.get(pk=pk)
+        serializer = AdminViewSerializer(user_detail, data=request.data)
+        
+        if serializer.is_valid():
+            # print(request.data)
+            serializer.save()
+            # print(serializer.data)
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
