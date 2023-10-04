@@ -5,7 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.pagination import PageNumberPagination
 from .serializers import AdminViewSerializer, LoginSerializer
 from drf_yasg.utils import swagger_auto_schema
-from account.models import UserData
+from account.models import UserData, Role
 from account.apis import messages
 from account.apis.pagination import PaginationHandlerMixin
 
@@ -118,6 +118,23 @@ class AdminView(APIView, PaginationHandlerMixin):
                     "code": 200,
                     "result": [],
                 },
-                # status=status.HTTP_200_OK,
-                status=status.HTTP_204_NO_CONTENT
+                status=status.HTTP_200_OK,
+                # status=status.HTTP_204_NO_CONTENT,
             )
+
+
+# def delete_user(request, user_id):
+#     # Retrieve the user's role
+#     user = request.user  # Assuming you have authentication set up
+#     user_role = user.user_data.role  # Assuming user_data links to the Role model
+
+#     # Check if the user's role is a superadmin
+#     if user_role.role == Role.SUPERADMIN:
+#         try:
+#             user_to_delete = User.objects.get(pk=user_id)
+#             user_to_delete.delete()
+#             return Response({"message": "User deleted successfully"}, status=status.HTTP_200_OK)
+#         except User.DoesNotExist:
+#             return Response({"message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+#     else:
+#         return Response({"message": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)

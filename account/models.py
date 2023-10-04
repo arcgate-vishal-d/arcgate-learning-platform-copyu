@@ -25,7 +25,6 @@ class Project(AbstractTable):
 class UserPermission(AbstractTable):
     emp_id = models.CharField(max_length=100, unique=True)
     read = models.BooleanField(default=False)
-    write = models.BooleanField(default=False)
     delete = models.BooleanField(default=False)
     update = models.BooleanField(default=False)
 
@@ -55,6 +54,7 @@ class Role(AbstractTable):
 
     class Meta:
         db_table = "roles"
+        unique_together = ("role", "permission")
 
     def get_role_display_str(self):
         return ", ".join(
@@ -65,6 +65,11 @@ class Role(AbstractTable):
             ]
         )
 
+    def save(self, *args, **kwargs):
+        if self.role != self.SUPERADMIN:
+            self.delete = False
+        super(Role, self).save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.get_role_display_str()}"
 
@@ -74,6 +79,7 @@ class UserData(AbstractTable):
         User,
         on_delete=models.CASCADE,
     )
+    fullName = models.CharField(max_length=50, null=False, default="")
     permission = models.ForeignKey(
         UserPermission,
         on_delete=models.CASCADE,
@@ -87,7 +93,6 @@ class UserData(AbstractTable):
     )
     STATUS_CHOICES = ((1, "Active"), (0, "Inactive"))
     status = models.IntegerField(choices=STATUS_CHOICES, default=False)
-    # fullName = models.CharField(max_length=20, null=False)
 
     class Meta:
         db_table = "user_datas"

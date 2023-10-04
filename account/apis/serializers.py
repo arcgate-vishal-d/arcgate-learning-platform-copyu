@@ -57,6 +57,7 @@ class AdminViewSerializer(serializers.ModelSerializer):
         model = UserData
         fields = [
             "username",
+            "fullName",
             "emp_id",
             "project",
             "status",
