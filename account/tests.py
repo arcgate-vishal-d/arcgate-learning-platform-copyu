@@ -35,7 +35,7 @@ class UserListingTestCase(TestCase):
         )
         self.user_data = UserData.objects.create(
             users=self.user,
-            fullName= "Test",
+            fullName="Test",
             permission=self.permission,
             project=self.project,
             role=self.role,

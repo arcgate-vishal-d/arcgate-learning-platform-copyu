@@ -101,7 +101,6 @@ class AdminView(APIView, PaginationHandlerMixin):
                     status=status.HTTP_200_OK,
                 )
             except Exception as e:
-                
                 pass
         else:
             return Response(
