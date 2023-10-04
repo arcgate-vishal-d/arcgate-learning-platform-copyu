@@ -2,11 +2,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import AdminViewSerializer
+from rest_framework.pagination import PageNumberPagination
+from .serializers import AdminViewSerializer, LoginSerializer
 from drf_yasg.utils import swagger_auto_schema
-from account.apis.serializers import LoginSerializer, AdminViewSerializer
 from account.models import UserData
 from account.apis import messages
+from account.apis.pagination import PaginationHandlerMixin
+
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -27,28 +29,86 @@ class Login(APIView):
         return Response({"token": token}, status=status.HTTP_200_OK)
 
 
-class AdminView(APIView):
+class BasicPagination(PageNumberPagination):
+    page_size_query_param = "limit"
+
+
+class AdminView(APIView, PaginationHandlerMixin):
+    pagination_class = BasicPagination
 
     def get(self, request, *args, **kwargs):
+        search_query = self.request.query_params.get("search")
+
+        ordering = self.request.query_params.get("ordering", "id")
+
+        project_filter = self.request.query_params.get("project")
+        status_filter = self.request.query_params.get("status")
+        empid_filter = self.request.query_params.get("permission")
+        username_filter = self.request.query_params.get("username")
+        fullName_filter = self.request.query_params.get("fullName")
+
+        valid_ordering_fields = [
+            "project__project_name",
+            "permission__emp_id",
+            "status",
+            "users__username",
+            "fullName",
+            "id",
+        ]
+        if ordering.lstrip("-") not in valid_ordering_fields:
+            ordering = "id"
+
         users_info = UserData.objects.all()
-        serializer = AdminViewSerializer(users_info, many=True).data
-        try:
-            return Response(
-                {
-                    "message": messages.get_success_message(),
-                    "error": False,
-                    "code": 200,
-                    "result": serializer,
-                },
-                status=status.HTTP_200_OK,
+
+        users_info = users_info.order_by(ordering)
+
+        if search_query:
+            users_info = users_info.filter(
+                project__project_name__icontains=search_query
             )
 
-        except Exception as e:
+        if project_filter:
+            users_info = users_info.filter(project__project_name=project_filter)
+
+        if status_filter:
+            users_info = users_info.filter(status=status_filter)
+
+        if empid_filter:
+            users_info = users_info.filter(permission__emp_id=empid_filter)
+
+        if username_filter:
+            users_info = users_info.filter(users__username=username_filter)
+
+        if fullName_filter:
+            users_info = users_info.filter(fullName__icontains=fullName_filter)
+
+        if users_info.exists():
+            page = self.paginate_queryset(users_info)
+
+            if page is not None:
+                serializer = AdminViewSerializer(page, many=True).data
+                return self.get_paginated_response(serializer)
+
+            try:
+                serializer = AdminViewSerializer(users_info, many=True).data
+                return Response(
+                    {
+                        "message": messages.get_success_message(),
+                        "error": False,
+                        "code": 200,
+                        "result": serializer,
+                    },
+                    status=status.HTTP_200_OK,
+                )
+            except Exception as e:
+                pass
+        else:
             return Response(
                 {
-                    "message": messages.get_failed_message(),
+                    "message": messages.get_not_found_message(),
                     "error": True,
-                    "code": 500,
-                    "result": {[]},
-                }
+                    "code": 200,
+                    "result": [],
+                },
+                status=status.HTTP_200_OK,
             )
