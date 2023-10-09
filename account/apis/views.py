@@ -135,12 +135,16 @@ class AdminView(APIView, PaginationHandlerMixin):
 class userDetail(APIView):
     def get(self, request, user_id):
         user_data = UserPermission.objects.filter(users_id=user_id)
+        user_info = User.objects.get(id=user_id)
 
         if user_data.exists():
             serializer = PermissionsSerializer(user_data, many=True)
             print(serializer.data)
             response = {
-                "result":serializer.data,
+                "username": user_info.username,
+                "empolyee_id": user_info.id,
+                "user-email": user_info.email,
+                "projects":serializer.data,
             }
             return Response(response)
         else:

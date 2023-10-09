@@ -38,15 +38,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class PermissionsSerializer(serializers.ModelSerializer):
-    # user = serializers.StringRelatedField(read_only=True)
     project = serializers.StringRelatedField(read_only=True)
     role = serializers.StringRelatedField(read_only=True)
-    user_id = serializers.StringRelatedField(source="users.id")
-    # print(user.username)
-    # project = serializers.CharField(source="project.project_name")
+
     class Meta:
         model = UserPermission
-        fields = ('id', 'project', 'user_id','role', 'read', 'delete', 'update')
+        fields = ( 'users', 'project','role', 'read', 'delete', 'update')
 
 class ProjectsSerializer(serializers.ModelSerializer):
     class Meta:
