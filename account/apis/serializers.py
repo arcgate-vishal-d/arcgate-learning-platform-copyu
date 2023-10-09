@@ -30,29 +30,48 @@ class LoginSerializer(serializers.Serializer):
         data["user"] = user
         return data  
 
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username',"is_active", 'first_name','last_name','email')
+
+
 class PermissionsSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField(read_only=True)
+    # user = serializers.StringRelatedField(read_only=True)
     project = serializers.StringRelatedField(read_only=True)
     role = serializers.StringRelatedField(read_only=True)
     user_id = serializers.StringRelatedField(source="users.id")
+    # print(user.username)
     # project = serializers.CharField(source="project.project_name")
     class Meta:
         model = UserPermission
-        fields = ('id', 'project','user', 'user_id','role', 'read', 'delete', 'update')
+        fields = ('id', 'project', 'user_id','role', 'read', 'delete', 'update')
 
 class ProjectsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
-        fields = ('id', 'project_name', 'project_slug')
+        fields = ('project_name',)
 
 
-# class UserDataSerializer(serializers.ModelSerializer):
-#     permission = PermissionsSerializer()
-#     project = ProjectsSerializer()
+class UserDataSerializer(serializers.ModelSerializer):
+    permission = PermissionsSerializer()
+    project = ProjectsSerializer()
 
-#     class Meta:
-#         model = UserData
-#         fields = ('id','user', 'project', 'permission', 'role', 'status')
+    class Meta:
+        model = UserData
+        fields = ('id','user', 'project', 'permission', 'role', 'status')
+
+
+class AdminDetailSerializer(serializers.ModelSerializer):
+    users = serializers.StringRelatedField()
+    status = serializers.IntegerField()
+    permission = PermissionsSerializer()  # Display status choices as integers
+    project = ProjectsSerializer()
+    class Meta:
+        model = UserData
+        fields = ("users", "status", "project","permission")
+
 
 
 # import re

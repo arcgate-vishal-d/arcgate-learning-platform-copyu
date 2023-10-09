@@ -6,12 +6,14 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework import generics
 from rest_framework.renderers import JSONRenderer
 
-from account.apis.serializers import LoginSerializer, PermissionsSerializer, ProjectsSerializer
+from account.apis.serializers import LoginSerializer, PermissionsSerializer, ProjectsSerializer, AdminDetailSerializer, UserSerializer
 from drf_yasg.utils import swagger_auto_schema
 from account.models import UserData, Project, UserPermission, User
 from account.apis import messages
 from account.apis.pagination import PaginationHandlerMixin
 from account.apis.permissions import IsAdminOrReadOnly, IsAdminUser
+
+from django.shortcuts import get_object_or_404
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -49,6 +51,8 @@ class AdminView(APIView, PaginationHandlerMixin):
     # permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
+        users_data = User.objects.get(pk=1)
+        print(users_data.last_name)
         search_query = self.request.query_params.get("search")
 
         ordering = self.request.query_params.get("ordering", "id")
@@ -102,18 +106,20 @@ class AdminView(APIView, PaginationHandlerMixin):
                 return self.get_paginated_response(serializer)
             try:
                 serializer = PermissionsSerializer(users_info, many=True).data
-
+                
+                
                 return Response(
                     {
                         "message": messages.get_success_message(),
                         "error": False,
                         "code": 200,
+                        
                         "result": serializer,
                     },
                     status=status.HTTP_200_OK,
                 )
             except Exception as e:
-                return Response({"msg":"hello"})
+                return Response({"msg":"Invalid"})
         else:
             return Response(
                 {
@@ -126,32 +132,43 @@ class AdminView(APIView, PaginationHandlerMixin):
             )
 
 
-# class userDetail(APIView):
-#     def get(self, request, pk):
-#         user_permissions = UserPermission.objects.filter(user=pk)
-#         serializer = PermissionsSerializer(user_permissions, many=True)
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-
 class userDetail(APIView):
-    # permission_classes = [IsAdminOrReadOnly]
-    # permission_classes = [IsAdminUser]
-    # renderer_classes = [JSONRenderer]
+    def get(self, request, user_id):
+        user_data = UserPermission.objects.filter(users_id=user_id)
 
-    def get(self, request, pk):
-        user_detail = UserPermission.objects.get(pk=pk)
-        print(user_detail.users.username)
-        serializer = PermissionsSerializer(user_detail)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def put(self, request, pk):
-        user_detail = UserPermission.objects.get(pk=pk)
-        serializer = PermissionsSerializer(user_detail, data=request.data)
-        
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+        if user_data.exists():
+            serializer = PermissionsSerializer(user_data, many=True)
+            print(serializer.data)
+            response = {
+                "result":serializer.data,
+            }
+            return Response(response)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+# class userDetail(APIView):
+#     def get(self, request, user_id):
+#         user_data = UserPermission.objects.filter(users_id=user_id)
+
+#         if user_data.exists():
+#             serializer = PermissionsSerializer(user_data, many=True)
+
+#             # Create a custom dictionary with the desired fields
+#             permission_data = [
+#                 {
+#                     "read": item["read"],
+#                     "delete": item["delete"],
+#                     "update": item["update"],
+#                 }
+#                 for item in serializer.data
+#             ]
+
+#             response = {"permissions": permission_data}
+#             return Response(response)
+#         else:
+#             return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 

@@ -2,6 +2,7 @@ from rest_framework import pagination
 from rest_framework import status
 from rest_framework.response import Response
 from account.apis import messages
+from account.models import User
 
 
 class CustomPagination(pagination.PageNumberPagination):
@@ -76,7 +77,6 @@ class PaginationHandlerMixin(object):
         current_page = page.number
         previous_page = current_page - 1 if current_page > 1 else None
         next_page = current_page + 1 if current_page < total_pages else None
-
         return Response(
             {
                 "message": messages.get_success_message(),
