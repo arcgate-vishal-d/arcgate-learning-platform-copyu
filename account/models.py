@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
+
 
 
 class AbstractTable(models.Model):
@@ -9,31 +11,6 @@ class AbstractTable(models.Model):
 
     class Meta:
         abstract = True
-
-
-class Project(AbstractTable):
-    project_name = models.CharField(max_length=200, null=True, blank=True)
-    project_slug = models.SlugField(max_length=200, unique=True)
-
-    class Meta:
-        db_table = "projects"
-
-    def __str__(self):
-        return str(self.project_name)
-
-
-class UserPermission(AbstractTable):
-    emp_id = models.CharField(max_length=100, unique=True)
-    read = models.BooleanField(default=False)
-    delete = models.BooleanField(default=False)
-    update = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = "user_permissions"
-
-    def __str__(self):
-        return str(self.emp_id)
-
 
 class Role(AbstractTable):
     SUPERADMIN = 1
@@ -50,52 +27,73 @@ class Role(AbstractTable):
         (AGENT, "Agent"),
     )
     role = models.IntegerField(choices=ROLE_CHOICES)
-    permission = models.ForeignKey(UserPermission, on_delete=models.CASCADE)
 
     class Meta:
         db_table = "roles"
-        unique_together = ("role", "permission")
 
     def get_role_display_str(self):
-        return ", ".join(
-            [
-                role_str
-                for role_val, role_str in self.ROLE_CHOICES
-                if role_val == self.role
-            ]
-        )
-
-    def save(self, *args, **kwargs):
-        if self.role != self.SUPERADMIN:
-            self.delete = False
-        super(Role, self).save(*args, **kwargs)
+        return dict(self.ROLE_CHOICES).get(self.role)
 
     def __str__(self):
         return f"{self.get_role_display_str()}"
 
 
+class Project(AbstractTable):
+    project_name = models.CharField(max_length=200, null=True, blank=True)
+    project_slug = models.SlugField(max_length=200, unique=True)
+
+    class Meta:
+        db_table = "projects"
+
+    def __str__(self):
+        return str(self.project_name)
+
+
+class User(AbstractUser):
+    username = models.CharField(max_length=200, null=True)
+    email = models.EmailField(unique=True, null=True)
+    projects = models.ManyToManyField('Project', through='UserData', related_name='users')
+
+    # Set emp_id as the primary key field
+    
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+
+    def __str__(self):
+        return self.email
+
+
+class UserPermission(AbstractTable):
+    users = models.ForeignKey(User, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    role = models.ForeignKey(Role, on_delete=models.CASCADE)
+    read = models.BooleanField(default=False)
+    delete = models.BooleanField(default=False)
+    update = models.BooleanField(default=False)
+
+
+    class Meta:
+        db_table = "user_permissions"
+
+    def __str__(self):
+        return str(self.users.username)
+
+
+
 class UserData(AbstractTable):
-    users = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-    )
-    fullName = models.CharField(max_length=50, null=False, default="")
-    permission = models.ForeignKey(
-        UserPermission,
-        on_delete=models.CASCADE,
-    )
-    project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="user_data"
-    )
-    role = models.ForeignKey(
-        Role,
-        on_delete=models.CASCADE,
-    )
+    users = models.ForeignKey(User, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="user_data")
+    permission = models.ForeignKey(UserPermission, on_delete=models.CASCADE)
+    role = models.ForeignKey(Role, on_delete=models.CASCADE)
     STATUS_CHOICES = ((1, "Active"), (0, "Inactive"))
-    status = models.IntegerField(choices=STATUS_CHOICES, default=False)
+    status = models.IntegerField(choices=STATUS_CHOICES, default=1)
 
     class Meta:
         db_table = "user_datas"
 
     def __str__(self):
         return str(self.users)
+ 
+
+
+ 

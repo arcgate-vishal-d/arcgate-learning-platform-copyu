@@ -4,18 +4,20 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import generics
+from rest_framework.renderers import JSONRenderer
 
-from .serializers import AdminViewSerializer, LoginSerializer
+from account.apis.serializers import LoginSerializer, PermissionsSerializer, ProjectsSerializer
 from drf_yasg.utils import swagger_auto_schema
-from account.models import UserData
+from account.models import UserData, Project, UserPermission, User
 from account.apis import messages
 from account.apis.pagination import PaginationHandlerMixin
-from account.apis.permissions import IsAdminOrReadOnly
+from account.apis.permissions import IsAdminOrReadOnly, IsAdminUser
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
         "message": "Login Successfully!",
+        "email": user.email,
         "refresh": str(refresh),
         "access": str(refresh.access_token),
     }
@@ -30,15 +32,21 @@ class Login(APIView):
         token = get_tokens_for_user(user)
         return Response({"token": token}, status=status.HTTP_200_OK)
 
+# class AdminView(generics.ListAPIView):
+#     queryset = UserPermission.objects.all()
+#     serializer_class = PermissionsSerializer
 
 class BasicPagination(PageNumberPagination):
     page_size_query_param = "limit"
 
 
 class AdminView(APIView, PaginationHandlerMixin):
-    pagination_class = BasicPagination
+    # pagination_class = BasicPagination
+    # renderer_classes = [JSONRenderer]
 
-    permission_classes = [IsAdminOrReadOnly]
+
+    # permission_classes = [IsAdminOrReadOnly]
+    # permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
         search_query = self.request.query_params.get("search")
@@ -62,7 +70,7 @@ class AdminView(APIView, PaginationHandlerMixin):
         if ordering.lstrip("-") not in valid_ordering_fields:
             ordering = "id"
 
-        users_info = UserData.objects.all()
+        users_info = UserPermission.objects.all()
 
         users_info = users_info.order_by(ordering)
 
@@ -90,11 +98,11 @@ class AdminView(APIView, PaginationHandlerMixin):
             page = self.paginate_queryset(users_info)
 
             if page is not None:
-                serializer = AdminViewSerializer(page, many=True).data
+                serializer = PermissionsSerializer(page, many=True).data
                 return self.get_paginated_response(serializer)
-
             try:
-                serializer = AdminViewSerializer(users_info, many=True).data
+                serializer = PermissionsSerializer(users_info, many=True).data
+
                 return Response(
                     {
                         "message": messages.get_success_message(),
@@ -105,7 +113,7 @@ class AdminView(APIView, PaginationHandlerMixin):
                     status=status.HTTP_200_OK,
                 )
             except Exception as e:
-                pass
+                return Response({"msg":"hello"})
         else:
             return Response(
                 {
@@ -118,27 +126,57 @@ class AdminView(APIView, PaginationHandlerMixin):
             )
 
 
-# class userDetail(generics.RetrieveUpdateDestroyAPIView):
-#     queryset = UserData.objects.all()
-#     serializer_class = AdminViewSerializer
-   
-
+# class userDetail(APIView):
+#     def get(self, request, pk):
+#         user_permissions = UserPermission.objects.filter(user=pk)
+#         serializer = PermissionsSerializer(user_permissions, many=True)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class userDetail(APIView):
+    # permission_classes = [IsAdminOrReadOnly]
+    # permission_classes = [IsAdminUser]
+    # renderer_classes = [JSONRenderer]
 
     def get(self, request, pk):
-        user_detail = UserData.objects.get(pk=pk)
-        serializer = AdminViewSerializer(user_detail)
+        user_detail = UserPermission.objects.get(pk=pk)
+        print(user_detail.users.username)
+        serializer = PermissionsSerializer(user_detail)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, pk):
-        user_detail = UserData.objects.get(pk=pk)
-        serializer = AdminViewSerializer(user_detail, data=request.data)
+        user_detail = UserPermission.objects.get(pk=pk)
+        serializer = PermissionsSerializer(user_detail, data=request.data)
         
         if serializer.is_valid():
-            # print(request.data)
             serializer.save()
-            # print(serializer.data)
             return Response(serializer.data)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+# class userDetail(APIView):
+#     # permission_classes = [IsAdminOrReadOnly]
+#     # permission_classes = [IsAdminUser]
+#     renderer_classes = [JSONRenderer]
+
+#     def get(self, request, pk):
+#         user_detail = UserData.objects.get(pk=pk)
+#         user_name = user_detail.users.username
+#         projects = Project.objects.all()
+#         serializer = AdminViewSerializer(user_detail)
+#         response = {
+#             "projects":projects,
+#             "data": serializer.data,
+#         }
+#         return Response(response,  status=status.HTTP_200_OK)
+
+#     def put(self, request, pk):
+#         user_detail = UserData.objects.get(pk=pk)
+#         serializer = AdminViewSerializer(user_detail, data=request.data)
+        
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         else:
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
