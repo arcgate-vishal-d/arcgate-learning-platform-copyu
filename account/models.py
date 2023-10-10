@@ -11,6 +11,7 @@ class AbstractTable(models.Model):
     class Meta:
         abstract = True
 
+
 class Role(AbstractTable):
     SUPERADMIN = 1
     PROJECT_MANAGER = 2
@@ -51,13 +52,14 @@ class Project(AbstractTable):
 class User(AbstractUser):
     username = models.CharField(max_length=200)
     email = models.EmailField(unique=True)
-    projects = models.ManyToManyField('Project', related_name='users')
-    
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
+    projects = models.ManyToManyField("Project", related_name="users")
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["username"]
 
     def __str__(self):
         return self.email
+
 
 class Permission(AbstractTable):
     read = models.BooleanField(default=False)
@@ -67,7 +69,8 @@ class Permission(AbstractTable):
     class Meta:
         db_table = "permissions"
 
-class  UserData(AbstractTable):
+
+class UserData(AbstractTable):
     users = models.ForeignKey(User, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
