@@ -118,7 +118,8 @@ class UserListing(APIView, PaginationHandlerMixin):
                 status=status.HTTP_200_OK,
             )
 
-    # class BulkUpdateUserDataView(generics.UpdateAPIView):
+
+class BulkUpdateUserDataView(generics.UpdateAPIView):
     serializer_class = PermissionsSerializer
 
     @transaction.atomic
@@ -126,31 +127,41 @@ class UserListing(APIView, PaginationHandlerMixin):
         updated_data = request.data
 
         if isinstance(updated_data, list):
-            user_ids = [item.get("user_id") for item in updated_data]
-            new_status = updated_data[0].get(
-                "status"
-            )  # Assuming all users have the same status
-            new_permissions_data = updated_data[0].get("permission")
-
             try:
-                UserData.objects.filter(users__id__in=user_ids).update(
-                    status=new_status
-                )
+                for item in updated_data:
+                    user_id = item.get("user_id")
+                    new_status = item.get("status")
+                    new_permissions_data = item.get("permission")
+                    project_name = item.get("project")
+                    user_data_objects = UserData.objects.filter(
+                        users__id=user_id, project__project_name=project_name
+                    )
 
-                Permission.objects.filter(userdata__users__id__in=user_ids).update(
-                    read=new_permissions_data.get("read", F("read")),
-                    delete=new_permissions_data.get("delete", F("delete")),
-                    update=new_permissions_data.get("update", F("update")),
-                )
+                    if user_data_objects.exists():
+                        user_data = user_data_objects.first()
 
-                return Response(
-                    {"message": f"Updated {len(user_ids)} users successfully"},
-                    status=status.HTTP_200_OK,
-                )
+                        user_data.status = new_status
+                        user_data.save()
+
+                        permission = user_data.permission
+                        permission.read = new_permissions_data.get(
+                            "read", permission.read
+                        )
+                        permission.delete = new_permissions_data.get(
+                            "delete", permission.delete
+                        )
+                        permission.update = new_permissions_data.get(
+                            "update", permission.update
+                        )
+                        permission.save()
 
             except UserData.DoesNotExist:
-                # Handle the case where some users do not exist
                 pass
+
+            return Response(
+                {"message": f"Updated {len(updated_data)} users successfully"},
+                status=status.HTTP_200_OK,
+            )
 
         return Response(
             {"message": "Invalid input data format"}, status=status.HTTP_400_BAD_REQUEST

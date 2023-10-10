@@ -7,7 +7,7 @@ from account.models import User, UserData, Project, Role, Permission
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
+    username = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
@@ -60,7 +60,7 @@ class PermissionsSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="users.username")
     user_id = serializers.CharField(source="users.id")
     project = serializers.CharField(source="project.project_name")
-    role = serializers.CharField(source="role.role")
+    role = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = UserData
