@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractUser
 
 
-
 class AbstractTable(models.Model):
     created = models.DateTimeField(default=timezone.now)
     modified = models.DateTimeField(auto_now=True)
@@ -39,7 +38,7 @@ class Role(AbstractTable):
 
 
 class Project(AbstractTable):
-    project_name = models.CharField(max_length=200, null=True, blank=True)
+    project_name = models.CharField(max_length=200)
     project_slug = models.SlugField(max_length=200, unique=True)
 
     class Meta:
@@ -50,11 +49,9 @@ class Project(AbstractTable):
 
 
 class User(AbstractUser):
-    username = models.CharField(max_length=200, null=True)
-    email = models.EmailField(unique=True, null=True)
-    projects = models.ManyToManyField('Project', through='UserData', related_name='users')
-
-    # Set emp_id as the primary key field
+    username = models.CharField(max_length=200)
+    email = models.EmailField(unique=True)
+    projects = models.ManyToManyField('Project', related_name='users')
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -62,38 +59,24 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-
-class UserPermission(AbstractTable):
-    users = models.ForeignKey(User, on_delete=models.CASCADE)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    role = models.ForeignKey(Role, on_delete=models.CASCADE)
+class Permission(AbstractTable):
     read = models.BooleanField(default=False)
     delete = models.BooleanField(default=False)
     update = models.BooleanField(default=False)
 
-
     class Meta:
-        db_table = "user_permissions"
+        db_table = "permissions"
 
-    def __str__(self):
-        return str(self.users.username)
-
-
-
-class UserData(AbstractTable):
+class  UserData(AbstractTable):
     users = models.ForeignKey(User, on_delete=models.CASCADE)
-    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="user_data")
-    permission = models.ForeignKey(UserPermission, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
     STATUS_CHOICES = ((1, "Active"), (0, "Inactive"))
     status = models.IntegerField(choices=STATUS_CHOICES, default=1)
 
     class Meta:
-        db_table = "user_datas"
+        db_table = "user_data"
 
     def __str__(self):
-        return str(self.users)
- 
-
-
- 
+        return str(self.users.username)

@@ -1,9 +1,9 @@
 from django.contrib import admin
-from .models import UserData, UserPermission, Project, Role, User
+from .models import UserData, Project, Role, User, Permission
 
 
 admin.site.register(UserData)
-admin.site.register(UserPermission)
 admin.site.register(Project)
 admin.site.register(Role)
 admin.site.register(User)
+admin.site.register(Permission)

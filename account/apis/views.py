@@ -6,14 +6,13 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework import generics
 from rest_framework.renderers import JSONRenderer
 
-from account.apis.serializers import LoginSerializer, PermissionsSerializer, ProjectsSerializer, AdminDetailSerializer, UserSerializer
+from account.apis.serializers import LoginSerializer, PermissionsSerializer
 from drf_yasg.utils import swagger_auto_schema
-from account.models import UserData, Project, UserPermission, User
-from account.apis import messages
+from account.models import  UserData, User
+from account.apis import messages, responses
 from account.apis.pagination import PaginationHandlerMixin
-from account.apis.permissions import IsAdminOrReadOnly, IsAdminUser
+# from account.apis.permissions import IsAdminOrReadOnly, IsAdminUser
 
-from django.shortcuts import get_object_or_404
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -34,15 +33,12 @@ class Login(APIView):
         token = get_tokens_for_user(user)
         return Response({"token": token}, status=status.HTTP_200_OK)
 
-# class AdminView(generics.ListAPIView):
-#     queryset = UserPermission.objects.all()
-#     serializer_class = PermissionsSerializer
 
 class BasicPagination(PageNumberPagination):
     page_size_query_param = "limit"
 
 
-class AdminView(APIView, PaginationHandlerMixin):
+class UserListing(APIView, PaginationHandlerMixin):
     # pagination_class = BasicPagination
     # renderer_classes = [JSONRenderer]
 
@@ -74,7 +70,7 @@ class AdminView(APIView, PaginationHandlerMixin):
         if ordering.lstrip("-") not in valid_ordering_fields:
             ordering = "id"
 
-        users_info = UserPermission.objects.all()
+        users_info =  UserData.objects.all()
 
         users_info = users_info.order_by(ordering)
 
@@ -132,29 +128,38 @@ class AdminView(APIView, PaginationHandlerMixin):
             )
 
 
-class userDetail(APIView):
+class  UserDetail(APIView):
     def get(self, request, user_id):
-        user_data = UserPermission.objects.filter(users_id=user_id)
-        user_info = User.objects.get(id=user_id)
+        try:
+            user_data =  UserData.objects.filter(users_id=user_id)
+            # user_info = User.objects.get(id=user_id)
 
-        if user_data.exists():
-            serializer = PermissionsSerializer(user_data, many=True)
-            print(serializer.data)
-            response = {
-                "username": user_info.username,
-                "empolyee_id": user_info.id,
-                "user-email": user_info.email,
-                "projects":serializer.data,
-            }
-            return Response(response)
-        else:
-            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+            if user_data.exists():
+                serializer = PermissionsSerializer(user_data, many=True)
+                
+                response_data = responses.success_response(serializer.data)
+                return Response(response_data, status=status.HTTP_200_OK)
+            
+            else:
+                response_data = responses.failed_response()
+                return Response(response_data, status=status.HTTP_200_OK)
+        except:
+            response_data = responses.error_response()
+            return Response(response_data, status=status.HTTP_200_OK)
+
+    # def put(self, request, user_id):
+    #     user_data =  UserData.objects.filter(users_id=user_id)
+    #     serializer = PermissionsSerializer(user_data, data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data, status=status.HTTP_200_OK)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 
 
-
-# class userDetail(APIView):
+# class  UserDetail(APIView):
 #     def get(self, request, user_id):
-#         user_data = UserPermission.objects.filter(users_id=user_id)
+#         user_data =  UserData.objects.filter(users_id=user_id)
 
 #         if user_data.exists():
 #             serializer = PermissionsSerializer(user_data, many=True)
@@ -176,16 +181,16 @@ class userDetail(APIView):
 
 
 
-# class userDetail(APIView):
+# class  UserDetail(APIView):
 #     # permission_classes = [IsAdminOrReadOnly]
 #     # permission_classes = [IsAdminUser]
 #     renderer_classes = [JSONRenderer]
 
 #     def get(self, request, pk):
-#         user_detail = UserData.objects.get(pk=pk)
+#         user_detail =  User.objects.get(pk=pk)
 #         user_name = user_detail.users.username
 #         projects = Project.objects.all()
-#         serializer = AdminViewSerializer(user_detail)
+#         serializer = UserListingSerializer(user_detail)
 #         response = {
 #             "projects":projects,
 #             "data": serializer.data,
@@ -193,8 +198,8 @@ class userDetail(APIView):
 #         return Response(response,  status=status.HTTP_200_OK)
 
 #     def put(self, request, pk):
-#         user_detail = UserData.objects.get(pk=pk)
-#         serializer = AdminViewSerializer(user_detail, data=request.data)
+#         user_detail =  .objects.get(pk=pk)
+#         serializer = UserListingSerializer(user_detail, data=request.data)
         
 #         if serializer.is_valid():
 #             serializer.save()
