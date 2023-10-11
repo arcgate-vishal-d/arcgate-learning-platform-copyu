@@ -7,11 +7,10 @@ from rest_framework import generics
 
 from account.apis.serializers import LoginSerializer, PermissionsSerializer
 from drf_yasg.utils import swagger_auto_schema
-from account.models import UserData, User, Permission
-from account.apis import messages, responses
+from account.models import UserData, User
+from account.apis import responses
 from account.apis.pagination import PaginationHandlerMixin
 from django.db import transaction
-from django.db.models import F
 
 
 def get_tokens_for_user(user):
@@ -40,8 +39,6 @@ class BasicPagination(PageNumberPagination):
 
 class UserListing(APIView, PaginationHandlerMixin):
     def get(self, request, *args, **kwargs):
-        users_data = User.objects.get(pk=1)
-        print(users_data.last_name)
         search_query = self.request.query_params.get("search")
 
         ordering = self.request.query_params.get("ordering", "id")
@@ -50,19 +47,21 @@ class UserListing(APIView, PaginationHandlerMixin):
         status_filter = self.request.query_params.get("status")
         empid_filter = self.request.query_params.get("permission")
         username_filter = self.request.query_params.get("username")
-        fullName_filter = self.request.query_params.get("fullName")
+        fullname_filter = self.request.query_params.get("fullname")
 
         valid_ordering_fields = [
             "project__project_name",
             "permission__emp_id",
             "status",
             "users__username",
-            "fullName",
+            "fullname",
             "id",
         ]
         if ordering.lstrip("-") not in valid_ordering_fields:
             ordering = "id"
+
         users_info = UserData.objects.all()
+
         users_info = users_info.order_by(ordering)
 
         if search_query:
@@ -80,10 +79,10 @@ class UserListing(APIView, PaginationHandlerMixin):
             users_info = users_info.filter(permission__emp_id=empid_filter)
 
         if username_filter:
-            users_info = users_info.filter(users__username=username_filter)
+            users_info = users_info.filter(users__username__icontains=username_filter)
 
-        if fullName_filter:
-            users_info = users_info.filter(fullName__icontains=fullName_filter)
+        if fullname_filter:
+            users_info = users_info.filter(fullname__icontains=fullname_filter)
 
         if users_info.exists():
             page = self.paginate_queryset(users_info)
@@ -94,27 +93,18 @@ class UserListing(APIView, PaginationHandlerMixin):
             try:
                 serializer = PermissionsSerializer(users_info, many=True).data
 
+                response_data = responses.success_response()
+                return Response(response_data, status=status.HTTP_200_OK)
+
+            except Exception as exe:
+                error_message = f"Error: {str(exe)}"
+                response_data = {"error": error_message}
                 return Response(
-                    {
-                        "message": messages.get_success_message(),
-                        "error": False,
-                        "code": 200,
-                        "result": serializer,
-                    },
-                    status=status.HTTP_200_OK,
+                    response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-            except Exception as e:
-                return Response({"msg": "Invalid"})
         else:
-            return Response(
-                {
-                    "message": messages.get_not_found_message(),
-                    "error": True,
-                    "code": 200,
-                    "result": [],
-                },
-                status=status.HTTP_200_OK,
-            )
+            response_data = responses.error_response()
+            return Response(response_data, status=status.HTTP_200_OK)
 
 
 class BulkUpdateUserDataView(generics.UpdateAPIView):
@@ -131,7 +121,6 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
                     new_status = item.get("status")
                     new_permissions_data = item.get("permission")
                     project_name = item.get("project")
-
                     user_data_objects = UserData.objects.filter(
                         users__id=user_id, project__project_name=project_name
                     )
@@ -155,16 +144,16 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
                         permission.save()
 
             except UserData.DoesNotExist:
-                pass
+                response_data = responses.user_data_not_found_response()
+                return Response(response_data, status=status.HTTP_200_OK)
 
             return Response(
-                {"message": f"Updated {len(updated_data)} users successfully"},
+                {"message": f"Updated {len(updated_data)} user's data successfully"},
                 status=status.HTTP_200_OK,
             )
 
-        return Response(
-            {"message": "Invalid input data format"}, status=status.HTTP_400_BAD_REQUEST
-        )
+        response_data = responses.invalid_data_formate_response()
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class UserDetail(APIView):
