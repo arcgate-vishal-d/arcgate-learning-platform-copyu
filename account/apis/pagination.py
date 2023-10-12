@@ -82,7 +82,7 @@ class PaginationHandlerMixin(object):
                 "message": messages.get_success_message(),
                 "error": False,
                 "code": 200,
-                "result": data,
+                "results": data,
                 "pagination": {
                     "total_items": total_items,
                     "total_pages": total_pages,

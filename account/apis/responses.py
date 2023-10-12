@@ -6,7 +6,7 @@ def success_response(data):
         "message": messages.get_success_message(),
         "error": False,
         "code": 200,
-        "project": [data],
+        "projects": [data],
     }
 
 
@@ -15,7 +15,7 @@ def failed_response():
         "message": messages.get_failed_message(),
         "error": True,
         "code": 200,
-        "result": [],
+        "results": [],
     }
 
 
@@ -24,5 +24,5 @@ def error_response():
         "message": messages.get_not_found_message(),
         "error": True,
         "code": 200,
-        "result": [],
+        "results": [],
     }
