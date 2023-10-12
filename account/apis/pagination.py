@@ -5,31 +5,43 @@ from account.apis import messages
 from account.models import User
 
 
+
 class CustomPagination(pagination.PageNumberPagination):
-    page_size = 50
+    page_size = 10
     page_size_query_param = "page_size"
     max_page_size = 100
-    page_query_param = "p"
+    page_query_param = "page"
     ordering = "id"
 
     def get_ordering(self, request):
         ordering = request.query_params.get("ordering", "id")
+        
 
         valid_ordering_fields = [
             "project__project_name",
-            "permission__emp_id",
+            # "permission__emp_id",
+            "users__fullname"
             "status",
             "users__username",
-            "fullName" "id",
+             "id",
         ]
         if ordering.lstrip("-") not in valid_ordering_fields:
             ordering = "id"
 
         return ordering
 
+    # def paginate_queryset(self, queryset, request, view=None):
+    #     ordering = self.get_ordering(request)
+    #     queryset = queryset.order_by(ordering)
+    #     return super().paginate_queryset(queryset, request, view)
     def paginate_queryset(self, queryset, request, view=None):
-        ordering = self.get_ordering(request)
-        queryset = queryset.order_by(ordering)
+        offset = request.query_params.get(self.page_query_param)
+        ordering = request.query_params.get("ordering", "id")  # Include ordering parameter
+
+        if offset is not None:
+            self.offset = offset
+        if ordering is not None:
+            self.ordering = ordering  # Set ordering for the queryset
         return super().paginate_queryset(queryset, request, view)
 
     def get_paginated_response(self, data):
@@ -82,7 +94,7 @@ class PaginationHandlerMixin(object):
                 "message": messages.get_success_message(),
                 "error": False,
                 "code": 200,
-                "result": data,
+                "results": data,
                 "pagination": {
                     "total_items": total_items,
                     "total_pages": total_pages,

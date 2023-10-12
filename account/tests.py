@@ -39,9 +39,9 @@ class UserListingTestCase(TestCase):
         self.project = Project.objects.create(
             project_name="testProject", project_slug="test-project"
         )
-        self.permission = UserPermission.objects.create(
-            emp_id="test-emp-001", read=True, delete=True, update=False
-        )
+        # self.permission = UserPermission.objects.create(
+        #     emp_id="test-emp-001", read=True, delete=True, update=False
+        # )
         self.role = Role.objects.create(
             role=Role.SUPERADMIN, permission=self.permission
         )

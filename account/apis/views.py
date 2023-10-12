@@ -9,8 +9,9 @@ from account.apis.serializers import LoginSerializer, PermissionsSerializer
 from drf_yasg.utils import swagger_auto_schema
 from account.models import UserData, User
 from account.apis import responses
-from account.apis.pagination import PaginationHandlerMixin
+from account.apis.pagination import PaginationHandlerMixin, CustomPagination
 from django.db import transaction
+
 
 
 def get_tokens_for_user(user):
@@ -38,25 +39,28 @@ class BasicPagination(PageNumberPagination):
 
 
 class UserListing(APIView, PaginationHandlerMixin):
+    pagination_class = CustomPagination
+    
     def get(self, request, *args, **kwargs):
         search_query = self.request.query_params.get("search")
 
         ordering = self.request.query_params.get("ordering", "id")
-
+        role_filter = self.request.query_params.get("role")
         project_filter = self.request.query_params.get("project")
         status_filter = self.request.query_params.get("status")
-        empid_filter = self.request.query_params.get("permission")
+        empid_filter = self.request.query_params.get("employee_id")
         username_filter = self.request.query_params.get("username")
-        fullname_filter = self.request.query_params.get("fullname")
+        fullName_filter = self.request.query_params.get("fullname")
 
         valid_ordering_fields = [
             "project__project_name",
-            "permission__emp_id",
+            "users__employee_id",
             "status",
-            "users__username",
+            "role__role",
             "fullname",
             "id",
         ]
+        print(valid_ordering_fields)
         if ordering.lstrip("-") not in valid_ordering_fields:
             ordering = "id"
 
@@ -76,13 +80,19 @@ class UserListing(APIView, PaginationHandlerMixin):
             users_info = users_info.filter(status=status_filter)
 
         if empid_filter:
-            users_info = users_info.filter(permission__emp_id=empid_filter)
+            users_info = users_info.filter(users__employee_id=empid_filter)
 
-        if username_filter:
-            users_info = users_info.filter(users__username__icontains=username_filter)
+        if fullName_filter:
+            users_info = users_info.filter(
+                # users__first_name__icontains=fullName_filter.split()[0],
+                # users__last_name__icontains=fullName_filter.split()[1]
+                fullname__icontains=fullName_filter
+            )
+        print(users_info)
+        
 
-        if fullname_filter:
-            users_info = users_info.filter(fullname__icontains=fullname_filter)
+        if role_filter:
+            users_info = users_info.filter(role__role=role_filter)
 
         if users_info.exists():
             page = self.paginate_queryset(users_info)
@@ -117,12 +127,24 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
         if isinstance(updated_data, list):
             try:
                 for item in updated_data:
-                    user_id = item.get("user_id")
+                    employee_id = item.get("employee_id")
                     new_status = item.get("status")
+                    if new_status not in ["Active", "Inactive"]:
+                        return Response(
+                            {"message": "Invalid value for 'status' field"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
                     new_permissions_data = item.get("permission")
+                    if not all(permission in ["true", "false"] for permission in new_permissions_data.values()):
+                        return Response(
+                            {"message": "Invalid value for permissions field"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
                     project_name = item.get("project")
                     user_data_objects = UserData.objects.filter(
-                        users__id=user_id, project__project_name=project_name
+                        users__employee_id=employee_id,
+                        project__project_name=project_name,
                     )
 
                     if user_data_objects.exists():
