@@ -37,10 +37,6 @@ class Login(APIView):
         return Response({"token": token}, status=status.HTTP_200_OK)
 
 
-class BasicPagination(PageNumberPagination):
-    page_size_query_param = "limit"
-
-
 class TokenRefreshView(APIView):   
     
     def post(self, request):
@@ -56,38 +52,42 @@ class TokenRefreshView(APIView):
         else:
             return Response({'error': 'Refresh token is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-class UserListing(APIView, PaginationHandlerMixin):
-    # permission_classes = [IsAuthenticatedUser]
-    permission_classes = [IsAuthenticated]
-    # permission_classes = [IsAdminUser]
 
+
+
+class BasicPagination(PageNumberPagination):
+    page_size_query_param = "limit"
+
+class UserListing(APIView, PaginationHandlerMixin):
+    permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
-        users_data = User.objects.get(pk=1)
-        print(users_data.last_name)
         search_query = self.request.query_params.get("search")
 
         ordering = self.request.query_params.get("ordering", "id")
-
+        role_filter = self.request.query_params.get("role")
         project_filter = self.request.query_params.get("project")
         status_filter = self.request.query_params.get("status")
-        empid_filter = self.request.query_params.get("permission")
+        empid_filter = self.request.query_params.get("employee_id")
         username_filter = self.request.query_params.get("username")
-        fullName_filter = self.request.query_params.get("fullName")
+        fullName_filter = self.request.query_params.get("fullname")
 
         valid_ordering_fields = [
             "project__project_name",
-            "permission__emp_id",
+            "users__employee_id",
             "status",
-            "users__username",
-            "fullName",
+            "role__role",
+            "fullname",
             "id",
         ]
+        print(valid_ordering_fields)
         if ordering.lstrip("-") not in valid_ordering_fields:
             ordering = "id"
 
         users_info = UserData.objects.all()
-
         users_info = users_info.order_by(ordering)
+        # paginator = LimitOffsetPagination()
+        # users_info = paginator.paginate_queryset(UserData.objects.all(), request, self)
+        
 
         if search_query:
             users_info = users_info.filter(
@@ -101,13 +101,19 @@ class UserListing(APIView, PaginationHandlerMixin):
             users_info = users_info.filter(status=status_filter)
 
         if empid_filter:
-            users_info = users_info.filter(permission__emp_id=empid_filter)
-
-        if username_filter:
-            users_info = users_info.filter(users__username=username_filter)
+            users_info = users_info.filter(users__employee_id=empid_filter)
 
         if fullName_filter:
-            users_info = users_info.filter(fullName__icontains=fullName_filter)
+            users_info = users_info.filter(
+                # users__first_name__icontains=fullName_filter.split()[0],
+                # users__last_name__icontains=fullName_filter.split()[1]
+                fullname__icontains=fullName_filter
+            )
+        print(users_info)
+        
+
+        if role_filter:
+            users_info = users_info.filter(role__role=role_filter)
 
         if users_info.exists():
             page = self.paginate_queryset(users_info)
@@ -118,32 +124,23 @@ class UserListing(APIView, PaginationHandlerMixin):
             try:
                 serializer = PermissionsSerializer(users_info, many=True).data
 
+                response_data = responses.success_response()
+                return Response(response_data, status=status.HTTP_200_OK)
+
+            except Exception as exe:
+                error_message = f"Error: {str(exe)}"
+                response_data = {"error": error_message}
                 return Response(
-                    {
-                        "message": messages.get_success_message(),
-                        "error": False,
-                        "code": 200,
-                        "results": serializer,
-                    },
-                    status=status.HTTP_200_OK,
+                    response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-            except Exception as e:
-                return Response({"msg": "Invalid"})
         else:
-            return Response(
-                {
-                    "message": messages.get_not_found_message(),
-                    "error": True,
-                    "code": 200,
-                    "results": [],
-                },
-                status=status.HTTP_200_OK,
-            )
+            response_data = responses.error_response()
+            return Response(response_data, status=status.HTTP_200_OK)
 
 
 class BulkUpdateUserDataView(generics.UpdateAPIView):
     serializer_class = PermissionsSerializer
-    # permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]
 
     @transaction.atomic
     def put(self, request, *args, **kwargs):
@@ -152,12 +149,24 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
         if isinstance(updated_data, list):
             try:
                 for item in updated_data:
-                    user_id = item.get("user_id")
+                    employee_id = item.get("employee_id")
                     new_status = item.get("status")
-                    new_permissions_data = item.get("permission")
+                    if new_status not in ["Active", "Inactive"]:
+                        return Response(
+                            {"message": "Invalid value for 'status' field"},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                    new_permissions_data = item.get("permissions")
+                    # if not all(permissions in ["true", "false"] for permissions in new_permissions_data.values()):
+                    #     return Response(
+                    #         {"message": "Invalid value for permissions field"},
+                    #         status=status.HTTP_400_BAD_REQUEST,
+                    #     )
                     project_name = item.get("project")
                     user_data_objects = UserData.objects.filter(
-                        users__id=user_id, project__project_name=project_name
+                        users__employee_id=employee_id,
+                        project__project_name=project_name,
                     )
 
                     if user_data_objects.exists():
@@ -166,34 +175,35 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
                         user_data.status = new_status
                         user_data.save()
 
-                        permission = user_data.permission
-                        permission.read = new_permissions_data.get(
-                            "read", permission.read
+                        permissions = user_data.permissions
+                        permissions.read = new_permissions_data.get(
+                            "read", permissions.read
                         )
-                        permission.delete = new_permissions_data.get(
-                            "delete", permission.delete
+                        permissions.delete = new_permissions_data.get(
+                            "delete", permissions.delete
                         )
-                        permission.update = new_permissions_data.get(
-                            "update", permission.update
+                        permissions.update = new_permissions_data.get(
+                            "update", permissions.update
                         )
-                        permission.save()
+                        permissions.save()
 
             except UserData.DoesNotExist:
-                pass
+                response_data = responses.user_data_not_found_response()
+                return Response(response_data, status=status.HTTP_200_OK)
 
             return Response(
-                {"message": f"Updated {len(updated_data)} users successfully"},
+                {"message": f"Updated {len(updated_data)} user's data successfully"},
                 status=status.HTTP_200_OK,
             )
 
-        return Response(
-            {"message": "Invalid input data format"}, status=status.HTTP_400_BAD_REQUEST
-        )
+        response_data = responses.invalid_data_formate_response()
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class UserDetail(APIView):
     # permission_classes = [IsAuthenticatedUser]
     permission_classes = [IsAuthenticated]
+    
     def get(self, request, user_id):
         try:
             user_data =  UserData.objects.filter(users_id=user_id)
@@ -215,7 +225,7 @@ class UserDetail(APIView):
 
 class LogoutView(APIView):
     authentication_classes = [JWTAuthentication] 
-    permission_classes = (IsAuthenticated,)
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         try:
             refresh_token = request.data.get("refresh")

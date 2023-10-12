@@ -56,19 +56,22 @@ class ProjectsSerializer(serializers.ModelSerializer):
 
 
 class PermissionsSerializer(serializers.ModelSerializer):
-    permission = UserDatasSerializer()
-    username = serializers.CharField(source="users.username")
+    permissions = UserDatasSerializer()
     user_id = serializers.CharField(source="users.id")
+    employee_id = serializers.CharField(source="users.employee_id", read_only=True)
+
     project = serializers.CharField(source="project.project_name")
     role = serializers.StringRelatedField(read_only=True)
+    status = serializers.ChoiceField(choices=UserData.STATUS_CHOICES)
 
     class Meta:
         model = UserData
         fields = [
+            "employee_id",
             "user_id",
-            "username",
+            "fullname",
             "project",
             "role",
             "status",
-            "permission",
+            "permissions",
         ]

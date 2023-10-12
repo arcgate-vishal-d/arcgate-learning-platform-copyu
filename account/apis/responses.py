@@ -15,7 +15,7 @@ def failed_response():
         "message": messages.get_failed_message(),
         "error": True,
         "code": 200,
-        "results": [],
+        "result": [],
     }
 
 
@@ -24,5 +24,5 @@ def error_response():
         "message": messages.get_not_found_message(),
         "error": True,
         "code": 200,
-        "results": [],
+        "result": [],
     }
