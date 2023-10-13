@@ -14,6 +14,9 @@ class LoginSerializer(serializers.Serializer):
         username = data.get("username")
         password = data.get("password")
 
+        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", username):
+            raise serializers.ValidationError("Invalid email format")
+
         if password:
             regular_expression = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{8,20}$"
             pattern = re.compile(regular_expression)

@@ -19,7 +19,7 @@ from rest_framework.permissions import IsAuthenticated
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
-    return {
+    return { 
         "message": "Login Successfully!",
         "username": user.username,
         "refresh": str(refresh),
@@ -59,8 +59,11 @@ class BasicPagination(PageNumberPagination):
     page_size_query_param = "limit"
 
 class UserListing(APIView, PaginationHandlerMixin):
+    
     permission_classes = [IsAuthenticated]
     def get(self, request, *args, **kwargs):
+        # auth_token = request.META.get('HTTP_AUTHORIZATION')
+        # print(auth_token)
         search_query = self.request.query_params.get("search")
 
         ordering = self.request.query_params.get("ordering", "id")
@@ -79,7 +82,7 @@ class UserListing(APIView, PaginationHandlerMixin):
             "fullname",
             "id",
         ]
-        print(valid_ordering_fields)
+
         if ordering.lstrip("-") not in valid_ordering_fields:
             ordering = "id"
 
@@ -109,7 +112,6 @@ class UserListing(APIView, PaginationHandlerMixin):
                 # users__last_name__icontains=fullName_filter.split()[1]
                 fullname__icontains=fullName_filter
             )
-        print(users_info)
         
 
         if role_filter:
@@ -223,18 +225,35 @@ class UserDetail(APIView):
 
 
 
+# class LogoutView(APIView):
+#     authentication_classes = [JWTAuthentication] 
+#     permission_classes = [IsAuthenticated]
+#     def post(self, request):
+#         try:
+#             refresh_token = request.data.get("refresh")
+#             # print(refresh_token)
+#             token = RefreshToken(refresh_token)
+#             token.blacklist()
+
+#             return Response({"message":"logout succussfully"} ,status=status.HTTP_205_RESET_CONTENT)
+#         except Exception as e:
+#             return Response({"message":"Something is wrong"},status=status.HTTP_400_BAD_REQUEST)
+
+
+
 class LogoutView(APIView):
-    authentication_classes = [JWTAuthentication] 
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+
     def post(self, request):
         try:
             refresh_token = request.data.get("refresh")
-            print(refresh_token)
+            if not refresh_token:
+                return Response({"message": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
             token = RefreshToken(refresh_token)
             token.blacklist()
 
-            return Response({"message":"logout succussfully"} ,status=status.HTTP_205_RESET_CONTENT)
+            return Response({"message": "Logout successfully."}, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({"message":"Something is wrong"},status=status.HTTP_400_BAD_REQUEST)
-
-
+            return Response({"message": "Invalid Token."}, status=status.HTTP_400_BAD_REQUEST)
