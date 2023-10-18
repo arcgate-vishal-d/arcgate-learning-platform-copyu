@@ -1,7 +1,10 @@
 import re
 from rest_framework import serializers
-from django.contrib.auth import authenticate
 
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from account.models import User, UserData, Project, Role, Permission
 
@@ -78,3 +81,30 @@ class PermissionsSerializer(serializers.ModelSerializer):
             "status",
             "permissions",
         ]
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+    default_error_messages = {
+        "bad_token" : {'Token is expired or Invalid'}
+    }
+    
+    def validate(self, attrs):
+        self.token = attrs['refresh']
+        return attrs
+    
+    def save(self, *args, **kwargs):
+        try:
+            RefreshToken(self.token).blacklist()
+        except TokenError:
+            self.fail('bad_token')
+
+
+# from rest_framework_simplejwt.exceptions import TokenError
+
+# class LogoutSerializer(serializers.Serializer):
+#     refresh = serializers.CharField()
+
+#     def validate(self, attrs):
+#         return attrs

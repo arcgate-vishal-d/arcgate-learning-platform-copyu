@@ -71,7 +71,6 @@ class PaginationHandlerMixin(object):
         assert self.paginator is not None
         page = self.paginator.page
         page_size = self.paginator.get_page_size(self.request)
-        offset = (page.number - 1) * page_size
         total_items = page.paginator.count
         total_pages = page.paginator.num_pages
         current_page = page.number
@@ -87,7 +86,6 @@ class PaginationHandlerMixin(object):
                     "total_items": total_items,
                     "total_pages": total_pages,
                     "current_page": current_page,
-                    "offset": offset,
                     "limit": page_size,
                     "next": next_page,
                     "previous": previous_page,
