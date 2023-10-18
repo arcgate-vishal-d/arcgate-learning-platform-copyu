@@ -1,3 +1,4 @@
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
@@ -5,27 +6,31 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import generics
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
 
-from account.apis.serializers import LoginSerializer, PermissionsSerializer, LogoutSerializer
-from drf_yasg.utils import swagger_auto_schema
+from account.apis.serializers import (
+    LoginSerializer,
+    PermissionsSerializer,
+)
 from account.models import UserData, User, Permission
 from account.apis import messages, responses
 from account.apis.pagination import PaginationHandlerMixin
 from django.db import transaction
 from django.db.models import F
-# from account.apis.permissions import IsAuthenticatedUser, IsAdminUser
-from rest_framework.permissions import IsAuthenticated
+
 
 login_flag = False
 
+
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
-    return { 
+    return {
         "message": "Login Successfully!",
         "username": user.username,
         "refresh": str(refresh),
         "access": str(refresh.access_token),
     }
+
 
 class Login(APIView):
     @swagger_auto_schema(request_body=LoginSerializer)
@@ -39,85 +44,65 @@ class Login(APIView):
         return Response({"token": token}, status=status.HTTP_200_OK)
 
 
-class TokenRefreshView(APIView):   
-    
+class TokenRefreshView(APIView):
     def post(self, request):
-        refresh_token = request.data.get('refresh')
+        refresh_token = request.data.get("refresh")
         if refresh_token:
             try:
                 refresh_token_obj = RefreshToken(refresh_token)
                 access_token = str(refresh_token_obj.access_token)
-                
-                return Response({'access': access_token}, status=status.HTTP_200_OK)
-            except Exception as e:
-                return Response({'error': 'Invalid or expired refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
-        else:
-            return Response({'error': 'Refresh token is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+                return Response({"access": access_token}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response(
+                    {"error": "Invalid or expired refresh token"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+        else:
+            return Response(
+                {"error": "Refresh token is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class LogoutView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     global login_flag
+
     def post(self, request):
-        
         try:
             refresh_token = request.data.get("refresh")
             if not refresh_token:
-                return Response({"message": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
-            
+                return Response(
+                    {"message": "Refresh token is required."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             token = RefreshToken(refresh_token)
             token.blacklist()
-            
+            global login_flag
             login_flag = False
 
-            return Response({"message": "Logout successfully."}, status=status.HTTP_200_OK)
+            return Response(
+                {"message": "Logout successfully."}, status=status.HTTP_200_OK
+            )
         except Exception as e:
-            return Response({"message": "Invalid Token."}, status=status.HTTP_400_BAD_REQUEST)
-    
-
-
-# class LogoutView(generics.GenericAPIView):
-#     serializer_class = LogoutSerializer
-#     permission_classes = [IsAuthenticated]
-
-#     def post(self, request, *args, **kwargs):
-#         serializer = self.serializer_class(data=request.data)
-#         serializer.is_valid(raise_exception=True)
-#         serializer.save()
-#         return Response( {'message':"Logout successfully."} ,status=status.HTTP_200_OK)
-
-
-# from rest_framework_simplejwt.exceptions import TokenError
-# class LogoutView(generics.GenericAPIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def get(self, request, *args, **kwargs):
-#         try:
-#             token = request.data.get("refresh")
-#             if not token:
-#                 return Response({"message": "Refresh token is required."}, status=status.HTTP_200_OK)
-
-#             refresh_token = RefreshToken(token)
-#             refresh_token.blacklist()
-#             return Response(status=status.HTTP_200_OK)
-
-#         except TokenError:
-#             return Response({"message": "Invalid or expired token."}, status=status.HTTP_200_OK)
-
-
+            return Response(
+                {"message": "Invalid Token."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class BasicPagination(PageNumberPagination):
     page_size_query_param = "limit"
 
+
 class UserListing(APIView, PaginationHandlerMixin):
     global login_flag
     permission_classes = [IsAuthenticated]
+
     def get(self, request, *args, **kwargs):
         if login_flag == True:
-
             search_query = self.request.query_params.get("search")
 
             ordering = self.request.query_params.get("ordering", "id")
@@ -158,7 +143,6 @@ class UserListing(APIView, PaginationHandlerMixin):
 
             if fullName_filter:
                 users_info = users_info.filter(fullname__icontains=fullName_filter)
-            
 
             if role_filter:
                 users_info = users_info.filter(role__role=role_filter)
@@ -249,10 +233,11 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
 class UserDetail(APIView):
     permission_classes = [IsAuthenticated]
     global login_flag
+
     def get(self, request, user_id):
         if login_flag == True:
             try:
-                user_data =  UserData.objects.filter(users_id=user_id)
+                user_data = UserData.objects.filter(users_id=user_id)
 
                 if user_data.exists():
                     serializer = PermissionsSerializer(user_data, many=True)

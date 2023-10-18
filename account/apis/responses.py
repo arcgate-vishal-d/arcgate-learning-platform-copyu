@@ -27,6 +27,7 @@ def error_response():
         "result": [],
     }
 
+
 def Login_failed_response():
     return {
         "message": messages.get_login_failed_message(),

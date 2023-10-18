@@ -13,8 +13,6 @@ class AbstractTable(models.Model):
 
 
 class Role(AbstractTable):
-
-
     ROLE_CHOICES = (
         ("Super Admin", "Super Admin"),
         ("Project Manager", "Project Manager"),
@@ -49,7 +47,6 @@ class User(AbstractUser):
     username = models.CharField(max_length=200)
     email = models.EmailField(unique=True)
     employee_id = models.CharField(unique=True, default="True", max_length=30)
-    
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
