@@ -13,12 +13,6 @@ class AbstractTable(models.Model):
 
 
 class Role(AbstractTable):
-    # SUPERADMIN = 1
-    # PROJECT_MANAGER = 2
-    # ASSISTANT_PROJECT_MANAGER = 3
-    # TEAM_LEAD = 4
-    # AGENT = 5
-
     ROLE_CHOICES = (
         ("Super Admin", "Super Admin"),
         ("Project Manager", "Project Manager"),
@@ -52,9 +46,7 @@ class Project(AbstractTable):
 class User(AbstractUser):
     username = models.CharField(max_length=200)
     email = models.EmailField(unique=True)
-    # projects = models.ManyToManyField("Project", related_name="users")
     employee_id = models.CharField(unique=True, default="True", max_length=30)
-    
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
@@ -76,10 +68,9 @@ class UserData(AbstractTable):
     users = models.ForeignKey(User, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
-    permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
+    permissions = models.ForeignKey(Permission, on_delete=models.CASCADE)
     fullname = models.CharField(max_length=50, null=False, blank=False, default=True)
-    # STATUS_CHOICES = ((1, "Active"), (0, "Inactive"))
-    # status = models.IntegerField(choices=STATUS_CHOICES, default=1)
+
     STATUS_CHOICES = (("Active", "Active"), ("Inactive", "Inactive"))
     status = models.CharField(choices=STATUS_CHOICES, default="Active")
 

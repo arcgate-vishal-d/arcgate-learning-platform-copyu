@@ -1,20 +1,25 @@
 import re
 from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+
 from account.models import User, UserData, Project, Role, Permission
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.CharField()
+    username = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
         email = data.get("email")
         password = data.get("password")
 
-        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
+        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", username):
             raise serializers.ValidationError("Invalid email format")
+
         if password:
             regular_expression = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!#%*?&]{8,20}$"
             pattern = re.compile(regular_expression)
@@ -57,32 +62,38 @@ class ProjectsSerializer(serializers.ModelSerializer):
 
 
 class PermissionsSerializer(serializers.ModelSerializer):
-    permission = UserDatasSerializer()
+    permissions = UserDatasSerializer()
+    user_id = serializers.CharField(source="users.id")
     employee_id = serializers.CharField(source="users.employee_id", read_only=True)
-    project = serializers.CharField(source="project.project_name")
-    # fullname=serializers.CharField(read_only=True)
-    # role = serializers.StringRelatedField(read_only=True)
-    role = serializers.CharField(source="role.role")
-    # status = serializers.StringRelatedField()
-    # status = serializers.CharField(source="get_status_display")
-    # status = serializers.CharField()
-    status = serializers.ChoiceField(choices=UserData.STATUS_CHOICES)
 
-    # fullname = serializers.SerializerMethodField(
-    #     method_name="get_fullname", read_only=True
-    # )
+    project = serializers.CharField(source="project.project_name")
+    role = serializers.StringRelatedField(read_only=True)
+    status = serializers.ChoiceField(choices=UserData.STATUS_CHOICES)
 
     class Meta:
         model = UserData
         fields = [
             "employee_id",
+            "user_id",
             "fullname",
             "project",
             "role",
             "status",
-            "permission",
+            "permissions",
         ]
 
-    # def get_fullname(self, obj):
-    #     return f"{obj.users.first_name} {obj.users.last_name}"
-   
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+    default_error_messages = {"bad_token": {"Token is expired or Invalid"}}
+
+    def validate(self, attrs):
+        self.token = attrs["refresh"]
+        return attrs
+
+    def save(self, *args, **kwargs):
+        try:
+            RefreshToken(self.token).blacklist()
+        except TokenError:
+            self.fail("bad_token")

@@ -6,7 +6,7 @@ def success_response(data):
         "message": messages.get_success_message(),
         "error": False,
         "code": 200,
-        "project": [data],
+        "projects": [data],
     }
 
 
@@ -28,18 +28,9 @@ def error_response():
     }
 
 
-def invalid_data_formate_response():
+def Login_failed_response():
     return {
-        "message": messages.invalid_data_formate,
-        "error": True,
-        "code": 200,
-        "result": [],
-    }
-
-
-def user_data_not_found_response():
-    return {
-        "message": messages.user_data_not_found,
+        "message": messages.get_login_failed_message(),
         "error": True,
         "code": 200,
         "result": [],
