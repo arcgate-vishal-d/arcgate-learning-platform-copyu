@@ -18,11 +18,11 @@ django.setup()
 from account.models import Role, Project, User, Permission, UserData
 
 roles_data = [
-    {"role": "Super Admin"},
-    {"role": "Project Manager"},
-    {"role": "Assistant Project Manager"},
-    {"role": "Team Lead"},
-    {"role": "Agent"},
+    {"role": 1},
+    {"role": 2},
+    {"role": 3},
+    {"role": 4},
+    {"role": 5},
 ]
 
 for data in roles_data:
@@ -69,31 +69,31 @@ user_data = [
     {
         "users": User.objects.get(username="user111"),
         "project": Project.objects.get(project_slug="project-1111"),
-        "role": Role.objects.get(role="Super Admin"),
+        "role": Role.objects.get(role=1),
         "permissions": Permission.objects.get(read=True, delete=False, update=True),
     },
     {
         "users": User.objects.get(username="user112"),
         "project": Project.objects.get(project_slug="project-2111"),
-        "role": Role.objects.get(role="Project Manager"),
+        "role": Role.objects.get(role=2),
         "permissions": Permission.objects.get(read=True, delete=True, update=False),
     },
     {
         "users": User.objects.get(username="user111"),
         "project": Project.objects.get(project_slug="project-2111"),
-        "role": Role.objects.get(role="Assistant Project Manager"),
+        "role": Role.objects.get(role=3),
         "permissions": Permission.objects.get(read=True, delete=True, update=False),
     },
     {
         "users": User.objects.get(username="user111"),
         "project": Project.objects.get(project_slug="project-3111"),
-        "role": Role.objects.get(role="Project Manager"),
+        "role": Role.objects.get(role=2),
         "permissions": Permission.objects.get(read=True, delete=True, update=False),
     },
     {
         "users": User.objects.get(username="user112"),
         "project": Project.objects.get(project_slug="project-1111"),
-        "role": Role.objects.get(role="Assistant Project Manager"),
+        "role": Role.objects.get(role=3),
         "permissions": Permission.objects.get(read=True, delete=True, update=False),
     },
 ]

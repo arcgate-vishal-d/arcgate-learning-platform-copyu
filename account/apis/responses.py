@@ -6,7 +6,7 @@ def success_response(data):
         "message": messages.get_success_message(),
         "error": False,
         "code": 200,
-        "projects": [data],
+        "projects": data,
     }
 
 
@@ -14,7 +14,7 @@ def failed_response():
     return {
         "message": messages.get_failed_message(),
         "error": True,
-        "code": 200,
+        "code": 400,
         "result": [],
     }
 
@@ -23,15 +23,24 @@ def error_response():
     return {
         "message": messages.get_not_found_message(),
         "error": True,
-        "code": 200,
+        "code": 400,
         "result": [],
     }
 
 
-def Login_failed_response():
+def login_failed_response():
     return {
         "message": messages.get_login_failed_message(),
         "error": True,
-        "code": 200,
+        "code": 400,
+        "result": [],
+    }
+
+
+def refresh_token_required_response():
+    return {
+        "message": messages.get_refresh_token_required_message(),
+        "error": True,
+        "code": 400,
         "result": [],
     }

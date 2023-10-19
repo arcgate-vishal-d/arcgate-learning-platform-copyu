@@ -10,14 +10,14 @@ from account.models import User, UserData, Project, Role, Permission
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.EmailField()
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        username = data.get("username")
+        email = data.get("email")
         password = data.get("password")
 
-        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", username):
+        if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
             raise serializers.ValidationError("Invalid email format")
 
         if password:
@@ -29,7 +29,7 @@ class LoginSerializer(serializers.Serializer):
                     "Password must be at least 8 characters long, uppercase and lowercase letters,one numeric character and special character"
                 )
 
-        user = authenticate(username=username, password=password)
+        user = authenticate(email=email, password=password)
         if not user:
             raise serializers.ValidationError("Invalid credentials")
 
@@ -50,6 +50,11 @@ class UserDatasSerializer(serializers.ModelSerializer):
 
 
 class RoleSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(source="get_role_display")
+
+    def get_role_display(self):
+        return dict(Role.ROLE_CHOICES).get(self.role)
+
     class Meta:
         model = Role
         fields = ("role",)
@@ -65,17 +70,15 @@ class PermissionsSerializer(serializers.ModelSerializer):
     permissions = UserDatasSerializer()
     user_id = serializers.CharField(source="users.id")
     employee_id = serializers.CharField(source="users.employee_id", read_only=True)
-
     project = serializers.CharField(source="project.project_name")
-    role = serializers.StringRelatedField(read_only=True)
-    status = serializers.ChoiceField(choices=UserData.STATUS_CHOICES)
+    role = serializers.CharField(source="role.get_role_display")
 
     class Meta:
         model = UserData
         fields = [
             "employee_id",
             "user_id",
-            "fullname",
+            "full_name",
             "project",
             "role",
             "status",
@@ -87,10 +90,6 @@ class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
 
     default_error_messages = {"bad_token": {"Token is expired or Invalid"}}
-
-    def validate(self, attrs):
-        self.token = attrs["refresh"]
-        return attrs
 
     def save(self, *args, **kwargs):
         try:

@@ -13,20 +13,24 @@ class AbstractTable(models.Model):
 
 
 class Role(AbstractTable):
+    superadmin = 1
+    project_manager = 2
+    assistant_project_manager = 3
+    team_lead = 4
+    agent = 5
+
     ROLE_CHOICES = (
-        ("Super Admin", "Super Admin"),
-        ("Project Manager", "Project Manager"),
-        ("Assistant Project Manager", "Assistant Project Manager"),
-        ("Team Lead", "Team Lead"),
-        ("Agent", "Agent"),
+        (superadmin, "Super Admin"),
+        (project_manager, "Project Manager"),
+        (assistant_project_manager, "Assistant Project Manager"),
+        (team_lead, "Team Lead"),
+        (agent, "Agent"),
     )
-    role = models.CharField(choices=ROLE_CHOICES, default="")
+
+    role = models.IntegerField(choices=ROLE_CHOICES)
 
     class Meta:
         db_table = "roles"
-
-    def get_role_display_str(self):
-        return dict(self.ROLE_CHOICES).get(self.role)
 
     def __str__(self):
         return f"{self.get_role_display_str()}"
@@ -69,13 +73,11 @@ class UserData(AbstractTable):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
     permissions = models.ForeignKey(Permission, on_delete=models.CASCADE)
-    fullname = models.CharField(max_length=50, null=False, blank=False, default=True)
-
-    STATUS_CHOICES = (("Active", "Active"), ("Inactive", "Inactive"))
-    status = models.CharField(choices=STATUS_CHOICES, default="Active")
+    full_name = models.CharField(max_length=50, null=False, blank=False)
+    status = models.BooleanField(default=True)
 
     class Meta:
-        db_table = "user_data"
+        db_table = "user_datas"
 
     def __str__(self):
         return str(self.users.username)

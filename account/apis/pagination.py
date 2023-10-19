@@ -1,16 +1,23 @@
 from rest_framework import pagination
 from rest_framework import status
 from rest_framework.response import Response
+
 from account.apis import messages
-from account.models import User
+from .constants import (
+    PAGE_SIZE,
+    PAGE_SIZE_QUERY_PARAM,
+    MAX_PAGE_SIZE,
+    PAGE_QUERY_PARAM,
+    ORDERING,
+)
 
 
 class CustomPagination(pagination.PageNumberPagination):
-    page_size = 2
-    page_size_query_param = "page_size"
-    max_page_size = 100
-    page_query_param = "page"
-    ordering = "id"
+    page_size = PAGE_SIZE
+    page_size_query_param = PAGE_SIZE_QUERY_PARAM
+    max_page_size = MAX_PAGE_SIZE
+    page_query_param = PAGE_QUERY_PARAM
+    ordering = ORDERING
 
     def get_ordering(self, request):
         ordering = request.query_params.get("ordering", "id")

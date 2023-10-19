@@ -1,4 +1,6 @@
+from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
+
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
@@ -12,11 +14,9 @@ from account.apis.serializers import (
     LoginSerializer,
     PermissionsSerializer,
 )
-from account.models import UserData, User, Permission
-from account.apis import messages, responses
+from account.models import UserData
+from account.apis import responses
 from account.apis.pagination import PaginationHandlerMixin
-from django.db import transaction
-from django.db.models import F
 
 
 login_flag = False
@@ -59,10 +59,8 @@ class TokenRefreshView(APIView):
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
         else:
-            return Response(
-                {"error": "Refresh token is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            response_data = responses.refresh_token_required_response()
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(APIView):
@@ -74,10 +72,8 @@ class LogoutView(APIView):
         try:
             refresh_token = request.data.get("refresh")
             if not refresh_token:
-                return Response(
-                    {"message": "Refresh token is required."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                response_data = responses.refresh_token_required_response()
+                return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
             token = RefreshToken(refresh_token)
             token.blacklist()
@@ -102,74 +98,72 @@ class UserListing(APIView, PaginationHandlerMixin):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        if login_flag == True:
-            search_query = self.request.query_params.get("search")
+        if not login_flag:
+            response_data = responses.login_failed_response()
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
-            ordering = self.request.query_params.get("ordering", "id")
-            role_filter = self.request.query_params.get("role")
-            project_filter = self.request.query_params.get("project")
-            status_filter = self.request.query_params.get("status")
-            empid_filter = self.request.query_params.get("employee_id")
-            fullName_filter = self.request.query_params.get("fullname")
+        search_query = self.request.query_params.get("search")
+        ordering = self.request.query_params.get("ordering", "id")
+        role_filter = self.request.query_params.get("role")
+        project_filter = self.request.query_params.get("project")
+        status_filter = self.request.query_params.get("status")
+        empid_filter = self.request.query_params.get("employee_id")
+        full_name_filter = self.request.query_params.get("full_name")
 
-            valid_ordering_fields = [
-                "project__project_name",
-                "users__employee_id",
-                "status",
-                "role__role",
-                "fullname",
-                "id",
-            ]
+        valid_ordering_fields = [
+            "project__project_name",
+            "users__employee_id",
+            "status",
+            "role__role",
+            "full_name",
+            "id",
+        ]
 
-            if ordering.lstrip("-") not in valid_ordering_fields:
-                ordering = "id"
+        if ordering.lstrip("-") not in valid_ordering_fields:
+            ordering = "id"
 
-            users_info = UserData.objects.all()
-            users_info = users_info.order_by(ordering)
+        users_info = UserData.objects.all()
 
-            if search_query:
-                users_info = users_info.filter(
-                    project__project_name__icontains=search_query
-                )
+        if search_query:
+            users_info = users_info.filter(
+                project__project_name__icontains=search_query
+            )
 
-            if project_filter:
-                users_info = users_info.filter(project__project_name=project_filter)
+        if project_filter:
+            users_info = users_info.filter(project__project_name=project_filter)
 
-            if status_filter:
-                users_info = users_info.filter(status=status_filter)
+        if status_filter:
+            users_info = users_info.filter(status=status_filter)
 
-            if empid_filter:
-                users_info = users_info.filter(users__employee_id=empid_filter)
+        if empid_filter:
+            users_info = users_info.filter(users__employee_id=empid_filter)
 
-            if fullName_filter:
-                users_info = users_info.filter(fullname__icontains=fullName_filter)
+        if full_name_filter:
+            users_info = users_info.filter(fullname__icontains=full_name_filter)
 
-            if role_filter:
-                users_info = users_info.filter(role__role=role_filter)
+        if role_filter:
+            users_info = users_info.filter(role__role=role_filter)
 
-            if users_info.exists():
-                page = self.paginate_queryset(users_info)
+        users_info = users_info.order_by(ordering)
 
-                if page is not None:
-                    serializer = PermissionsSerializer(page, many=True).data
-                    return self.get_paginated_response(serializer)
-                try:
-                    serializer = PermissionsSerializer(users_info, many=True).data
+        if users_info.exists():
+            page = self.paginate_queryset(users_info)
 
-                    response_data = responses.success_response()
-                    return Response(response_data, status=status.HTTP_200_OK)
+            if page is not None:
+                serializer = PermissionsSerializer(page, many=True).data
+                return self.get_paginated_response(serializer)
+            try:
+                serializer = PermissionsSerializer(users_info, many=True).data
 
-                except Exception as exe:
-                    error_message = f"Error: {str(exe)}"
-                    response_data = {"error": error_message}
-                    return Response(
-                        response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
-            else:
-                response_data = responses.error_response()
+                response_data = responses.success_response()
                 return Response(response_data, status=status.HTTP_200_OK)
+
+            except Exception as exe:
+                error_message = f"Error: {str(exe)}"
+                response_data = {"error": error_message}
+                return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         else:
-            response_data = responses.Login_failed_response()
+            response_data = responses.error_response()
             return Response(response_data, status=status.HTTP_200_OK)
 
 
@@ -235,22 +229,21 @@ class UserDetail(APIView):
     global login_flag
 
     def get(self, request, user_id):
-        if login_flag == True:
-            try:
-                user_data = UserData.objects.filter(users_id=user_id)
+        if not login_flag:
+            response_data = responses.login_failed_response()
+            return Response(response_data, status=status.HTTP_200_OK)
+        try:
+            user_data = UserData.objects.filter(users_id=user_id)
 
-                if user_data.exists():
-                    serializer = PermissionsSerializer(user_data, many=True)
+            if user_data.exists():
+                serializer = PermissionsSerializer(user_data, many=True)
 
-                    response_data = responses.success_response(serializer.data)
-                    return Response(response_data, status=status.HTTP_200_OK)
-
-                else:
-                    response_data = responses.failed_response()
-                    return Response(response_data, status=status.HTTP_200_OK)
-            except:
-                response_data = responses.error_response()
+                response_data = responses.success_response(serializer.data)
                 return Response(response_data, status=status.HTTP_200_OK)
-        else:
-            response_data = responses.Login_failed_response()
+
+            else:
+                response_data = responses.failed_response()
+                return Response(response_data, status=status.HTTP_200_OK)
+        except:
+            response_data = responses.error_response()
             return Response(response_data, status=status.HTTP_200_OK)
