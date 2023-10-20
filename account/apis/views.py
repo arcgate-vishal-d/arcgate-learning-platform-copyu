@@ -1,4 +1,6 @@
+from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
+
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
@@ -12,11 +14,9 @@ from account.apis.serializers import (
     LoginSerializer,
     PermissionsSerializer,
 )
-from account.models import UserData, User, Permission
-from account.apis import messages, responses
+from account.models import UserData, Permission
+from account.apis import responses
 from account.apis.pagination import PaginationHandlerMixin
-from django.db import transaction
-
 
 
 login_flag = False
@@ -59,30 +59,26 @@ class TokenRefreshView(APIView):
                     status=status.HTTP_401_UNAUTHORIZED,
                 )
         else:
-            return Response(
-                {"error": "Refresh token is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            response_data = responses.refresh_token_required_response()
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-    global login_flag
+    # authentication_classes = [JWTAuthentication]
+    # permission_classes = [IsAuthenticated]
+    # global login_flag
 
     def post(self, request):
         try:
             refresh_token = request.data.get("refresh")
             if not refresh_token:
-                return Response(
-                    {"message": "Refresh token is required."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                response_data = responses.refresh_token_required_response()
+                return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
             token = RefreshToken(refresh_token)
             token.blacklist()
-            global login_flag
-            login_flag = False
+            # global login_flag
+            # login_flag = False
 
             return Response(
                 {"message": "Logout successfully."}, status=status.HTTP_200_OK
@@ -98,81 +94,241 @@ class BasicPagination(PageNumberPagination):
 
 
 class UserListing(APIView, PaginationHandlerMixin):
-    global login_flag
-    permission_classes = [IsAuthenticated]
+    # global login_flag
+    # permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        if login_flag == True:
-            search_query = self.request.query_params.get("search")
+        # if login_flag == True:
+        search_query = self.request.query_params.get("search")
+        ordering = self.request.query_params.get("ordering", "id")
+        role_filter = self.request.query_params.get("role")
+        project_filter = self.request.query_params.get("project")
+        status_filter = self.request.query_params.get("status")
+        empid_filter = self.request.query_params.get("employee_id")
+        fullName_filter = self.request.query_params.get("fullname")
 
-            ordering = self.request.query_params.get("ordering", "id")
-            role_filter = self.request.query_params.get("role")
-            project_filter = self.request.query_params.get("project")
-            status_filter = self.request.query_params.get("status")
-            empid_filter = self.request.query_params.get("employee_id")
-            fullName_filter = self.request.query_params.get("fullname")
+        valid_ordering_fields = [
+            "project__project_name",
+            "users__employee_id",
+            "status",
+            "role__role",
+            "full_name",
+            "id",
+        ]
 
-            valid_ordering_fields = [
-                "project__project_name",
-                "users__employee_id",
-                "status",
-                "role__role",
-                "fullname",
-                "id",
-            ]
+        if ordering.lstrip("-") not in valid_ordering_fields:
+            ordering = "id"
 
-            if ordering.lstrip("-") not in valid_ordering_fields:
-                ordering = "id"
+        users_info = UserData.objects.all()
 
-            users_info = UserData.objects.all()
-            users_info = users_info.order_by(ordering)
+        if search_query:
+            users_info = users_info.filter(
+                project__project_name__icontains=search_query
+            )
 
-            if search_query:
-                users_info = users_info.filter(
-                    project__project_name__icontains=search_query
-                )
+        if project_filter:
+            users_info = users_info.filter(project__project_name=project_filter)
 
-            if project_filter:
-                users_info = users_info.filter(project__project_name=project_filter)
+        if status_filter:
+            users_info = users_info.filter(status=status_filter)
 
-            if status_filter:
-                users_info = users_info.filter(status=status_filter)
+        if empid_filter:
+            users_info = users_info.filter(users__employee_id=empid_filter)
 
-            if empid_filter:
-                users_info = users_info.filter(users__employee_id=empid_filter)
+        if fullName_filter:
+            users_info = users_info.filter(fullname__icontains=fullName_filter)
 
-            if fullName_filter:
-                users_info = users_info.filter(fullname__icontains=fullName_filter)
+        if role_filter:
+            users_info = users_info.filter(role__role=role_filter)
 
-            if role_filter:
-                users_info = users_info.filter(role__role=role_filter)
+        users_info = users_info.order_by(ordering)
 
-            if users_info.exists():
-                page = self.paginate_queryset(users_info)
+        if users_info.exists():
+            page = self.paginate_queryset(users_info)
 
-                if page is not None:
-                    serializer = PermissionsSerializer(page, many=True).data
-                    return self.get_paginated_response(serializer)
-                try:
-                    serializer = PermissionsSerializer(users_info, many=True).data
+            if page is not None:
+                serializer = PermissionsSerializer(page, many=True).data
+                return self.get_paginated_response(serializer)
+            try:
+                serializer = PermissionsSerializer(users_info, many=True).data
 
-                    response_data = responses.success_response()
-                    return Response(response_data, status=status.HTTP_200_OK)
-
-                except Exception as exe:
-                    error_message = f"Error: {str(exe)}"
-                    response_data = {"error": error_message}
-                    return Response(
-                        response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
-            else:
-                response_data = responses.error_response()
+                response_data = responses.success_response()
                 return Response(response_data, status=status.HTTP_200_OK)
+
+            except Exception as exe:
+                error_message = f"Error: {str(exe)}"
+                response_data = {"error": error_message}
+                return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         else:
-            response_data = responses.Login_failed_response()
+            response_data = responses.error_response()
             return Response(response_data, status=status.HTTP_200_OK)
 
+    # else:
+    #     response_data = responses.login_failed_response()
+    #     return Response(response_data, status=status.HTTP_200_OK)
 
+
+# class BulkUpdateUserDataView(generics.UpdateAPIView):
+#     serializer_class = PermissionsSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     # @transaction.atomic
+#     def put(self, request, *args, **kwargs):
+#         updated_data = request.data
+
+#         if isinstance(updated_data, list):
+#             try:
+#                 for item in updated_data:
+#                     employee_id = item.get("employee_id")
+#                     new_status = item.get("status")
+                    
+
+#                     new_permissions_data = item.get("permissions")
+#                     project_name = item.get("project")
+#                     user_data_objects = UserData.objects.filter(
+#                         users__employee_id=employee_id,
+#                         project__project_name=project_name,
+#                     )
+
+#                     if user_data_objects.exists():
+#                         user_data = user_data_objects.first()
+
+#                         user_data.status = new_status
+#                         user_data.save()
+                     
+
+#                         permissions = user_data.permissions
+#                         permissions.read = new_permissions_data.get(
+#                             "read", permissions.read
+#                         )
+#                         permissions.delete = new_permissions_data.get(
+#                             "delete", permissions.delete
+#                         )
+#                         permissions.update = new_permissions_data.get(
+#                             "update", permissions.update
+#                         )
+#                         permissions.save()
+
+#             except UserData.DoesNotExist:
+#                 response_data = responses.user_data_not_found_response()
+#                 return Response(response_data, status=status.HTTP_200_OK)
+
+#             return Response(
+#                 {"message": f"Updated {len(updated_data)} user's data successfully"},
+#                 status=status.HTTP_200_OK,
+#             )
+
+#         response_data = responses.invalid_data_formate_response()
+#         return Response(response_data, status=status.HTTP_200_OK)
+
+# class BulkUpdateUserDataView(generics.UpdateAPIView):
+#     serializer_class = PermissionsSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     @transaction.atomic
+#     def put(self, request, *args, **kwargs):
+#         updated_data = request.data
+
+#         if isinstance(updated_data, list):
+#             try:
+#                 for item in updated_data:
+#                     employee_id = item.get("employee_id")
+#                     new_status = item.get("status")
+                    
+
+#                     new_permissions_data = item.get("permissions")
+#                     project_name = item.get("project")
+#                     user_data_objects = UserData.objects.filter(
+#                         users__employee_id=employee_id,
+#                         project__project_name=project_name,
+#                     )
+
+#                     if user_data_objects.exists():
+#                         user_data = user_data_objects.first()
+
+#                         user_data.status = new_status
+#                         user_data.save()
+
+#                         permissions = user_data.permissions
+#                         permissions.read = new_permissions_data.get(
+#                             "read", permissions.read
+#                         )
+#                         permissions.delete = new_permissions_data.get(
+#                             "delete", permissions.delete
+#                         )
+#                         permissions.update = new_permissions_data.get(
+#                             "update", permissions.update
+#                         )
+#                         permissions.save()
+
+#             except UserData.DoesNotExist:
+#                 response_data = responses.user_data_not_found_response()
+#                 return Response(response_data, status=status.HTTP_200_OK)
+
+#             return Response(
+#                 {"message": f"Updated {len(updated_data)} user's data successfully"},
+#                 status=status.HTTP_200_OK,
+#             )
+
+#         response_data = responses.invalid_data_formate_response()
+#         return Response(response_data, status=status.HTTP_200_OK)
+    
+
+    
+# class BulkUpdateUserDataView(generics.UpdateAPIView):
+#     serializer_class = PermissionsSerializer
+
+#     @transaction.atomic
+#     def put(self, request, *args, **kwargs):
+#         updated_data = request.data
+
+#         if isinstance(updated_data, list):
+#             try:
+#                 for item in updated_data:
+#                     user_id = item.get("user_id")
+#                     new_status = item.get("status")
+#                     new_permissions_data = item.get("permissions")
+#                     project_name = item.get("project")  # Get project name from data
+
+#                     user_data_objects = UserData.objects.filter(
+#                         users__id=user_id, project__project_name=project_name
+#                     )
+
+#                     if user_data_objects.exists():
+#                         # Choose one of the user_data objects or specify a criteria
+#                         user_data = user_data_objects.first()
+
+#                         # Update the user_data object
+#                         user_data.status = new_status
+#                         user_data.save()
+
+#                         permissions = user_data.permissions
+#                         permissions.read = new_permissions_data.get(
+#                             "read", permissions.read
+#                         )
+#                         permissions.delete = new_permissions_data.get(
+#                             "delete", permissions.delete
+#                         )
+#                         permissions.update = new_permissions_data.get(
+#                             "update", permissions.update
+#                         )
+#                         permissions.save()
+
+#             except UserData.DoesNotExist:
+#                 # Handle the case where some users do not exist
+#                 pass
+
+#             return Response(
+#                 {"message": f"Updated {len(updated_data)} users successfully"},
+#                 status=status.HTTP_200_OK,
+#             )
+
+#         return Response(
+#             {"message": "Invalid input data format"}, status=status.HTTP_400_BAD_REQUEST
+#         )
+
+# ------------------------------------------------------------------------------------------------------------------->>>>>>>>
+# ------------------------------------------------------------------------------------------------------------------->>>>>>>>
 class BulkUpdateUserDataView(generics.UpdateAPIView):
     serializer_class = PermissionsSerializer
     permission_classes = [IsAuthenticated]
@@ -180,17 +336,14 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
     @transaction.atomic
     def put(self, request, *args, **kwargs):
         updated_data = request.data
+        updated_users_count = 0
 
         if isinstance(updated_data, list):
             try:
                 for item in updated_data:
                     employee_id = item.get("employee_id")
                     new_status = item.get("status")
-                    if new_status not in ["Active", "Inactive"]:
-                        return Response(
-                            {"message": "Invalid value for 'status' field"},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
+                    
 
                     new_permissions_data = item.get("permissions")
                     project_name = item.get("project")
@@ -217,17 +370,78 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
                         )
                         permissions.save()
 
+                        updated_users_count += 1
+
             except UserData.DoesNotExist:
                 response_data = responses.user_data_not_found_response()
                 return Response(response_data, status=status.HTTP_200_OK)
 
+            # return Response(
+            #     {"message": f"Updated {len(updated_data)} user's data successfully"},
+            #     status=status.HTTP_200_OK,
+            # )
             return Response(
-                {"message": f"Updated {len(updated_data)} user's data successfully"},
+                {"message": f"Updated {updated_users_count} out of {len(updated_data)} users successfully"},
                 status=status.HTTP_200_OK,
             )
 
         response_data = responses.invalid_data_formate_response()
         return Response(response_data, status=status.HTTP_200_OK)
+# ------------------------------------------------------------------------------------------------------------------->>>>>>>>
+# ------------------------------------------------------------------------------------------------------------------->>>>>>>>
+# class BulkUpdateUserDataView(generics.UpdateAPIView):
+#     serializer_class = PermissionsSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     @transaction.atomic
+#     def put(self, request, *args, **kwargs):
+#         updated_data = request.data
+#         updated_users_count = 0
+
+#         if isinstance(updated_data, list):
+#             try:
+#                 for item in updated_data:
+#                     employee_id = item.get("employee_id")
+#                     new_status = item.get("status")
+#                     new_permissions_data = item.get("permissions")
+#                     project_name = item.get("project")
+#                     user_data_objects = UserData.objects.filter(
+#                         users__employee_id=employee_id,
+#                         project__project_name=project_name,
+#                     )
+
+#                     if user_data_objects.exists():
+#                         user_data = user_data_objects.first()
+
+#                         user_data.status = new_status
+#                         user_data.save()
+
+#                         permissions = user_data.permissions
+#                         permissions.read = new_permissions_data.get(
+#                             "read", permissions.read
+#                         )
+#                         permissions.delete = new_permissions_data.get(
+#                             "delete", permissions.delete
+#                         )
+#                         permissions.update = new_permissions_data.get(
+#                             "update", permissions.update
+#                         )
+#                         permissions.save()
+
+#                         updated_users_count += 1
+
+#             except UserData.DoesNotExist:
+#                 response_data = responses.user_data_not_found_response()
+#                 return Response(response_data, status=status.HTTP_200_OK)
+
+#             return Response(
+#                 {"message": f"Updated {updated_users_count} out of {len(updated_data)} users successfully"},
+#                 status=status.HTTP_200_OK,
+#             )
+
+#         response_data = responses.invalid_data_formate_response()
+#         return Response(response_data, status=status.HTTP_200_OK)
+
 
 
 class UserDetail(APIView):
@@ -252,5 +466,5 @@ class UserDetail(APIView):
                 response_data = responses.error_response()
                 return Response(response_data, status=status.HTTP_200_OK)
         else:
-            response_data = responses.Login_failed_response()
+            response_data = responses.login_failed_response()
             return Response(response_data, status=status.HTTP_200_OK)

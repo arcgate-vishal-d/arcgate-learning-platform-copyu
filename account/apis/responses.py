@@ -28,7 +28,7 @@ def error_response():
     }
 
 
-def Login_failed_response():
+def login_failed_response():
     return {
         "message": messages.get_login_failed_message(),
         "error": True,

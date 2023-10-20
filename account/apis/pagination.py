@@ -2,46 +2,44 @@ from rest_framework import pagination
 from rest_framework import status
 from rest_framework.response import Response
 from account.apis import messages
-from account.models import User
-
+from .constants import (
+    PAGE_SIZE,
+    PAGE_SIZE_QUERY_PARAM,
+    MAX_PAGE_SIZE,
+    PAGE_QUERY_PARAM,
+    ORDERING,
+)
 
 
 class CustomPagination(pagination.PageNumberPagination):
-    page_size = 50
-    page_size_query_param = "page_size"
-    max_page_size = 100
-    page_query_param = "page"
-    ordering = "id"
+    page_size = PAGE_SIZE
+    page_size_query_param = PAGE_SIZE_QUERY_PARAM
+    max_page_size = MAX_PAGE_SIZE
+    page_query_param = PAGE_QUERY_PARAM
+    ordering = ORDERING
 
     def get_ordering(self, request):
         ordering = request.query_params.get("ordering", "id")
-        
 
         valid_ordering_fields = [
             "project__project_name",
-            # "permission__emp_id",
-            "users__fullname"
-            "status",
+            "users__fullname" "status",
             "users__username",
-             "id",
+            "id",
         ]
         if ordering.lstrip("-") not in valid_ordering_fields:
             ordering = "id"
 
         return ordering
 
-    # def paginate_queryset(self, queryset, request, view=None):
-    #     ordering = self.get_ordering(request)
-    #     queryset = queryset.order_by(ordering)
-    #     return super().paginate_queryset(queryset, request, view)
     def paginate_queryset(self, queryset, request, view=None):
         offset = request.query_params.get(self.page_query_param)
-        ordering = request.query_params.get("ordering", "id")  # Include ordering parameter
+        ordering = request.query_params.get("ordering", "id")
 
         if offset is not None:
             self.offset = offset
         if ordering is not None:
-            self.ordering = ordering  # Set ordering for the queryset
+            self.ordering = ordering
         return super().paginate_queryset(queryset, request, view)
 
     def get_paginated_response(self, data):
