@@ -1,15 +1,23 @@
 from rest_framework import pagination
 from rest_framework import status
 from rest_framework.response import Response
+
 from account.apis import messages
+from .constants import (
+    PAGE_SIZE,
+    PAGE_SIZE_QUERY_PARAM,
+    MAX_PAGE_SIZE,
+    PAGE_QUERY_PARAM,
+    ORDERING,
+)
 
 
 class CustomPagination(pagination.PageNumberPagination):
-    page_size = 50
-    page_size_query_param = "page_size"
-    max_page_size = 100
-    page_query_param = "p"
-    ordering = "id"
+    page_size = PAGE_SIZE
+    page_size_query_param = PAGE_SIZE_QUERY_PARAM
+    max_page_size = MAX_PAGE_SIZE
+    page_query_param = PAGE_QUERY_PARAM
+    ordering = ORDERING
 
     def get_ordering(self, request):
         ordering = request.query_params.get("ordering", "id")
@@ -70,24 +78,21 @@ class PaginationHandlerMixin(object):
         assert self.paginator is not None
         page = self.paginator.page
         page_size = self.paginator.get_page_size(self.request)
-        offset = (page.number - 1) * page_size
         total_items = page.paginator.count
         total_pages = page.paginator.num_pages
         current_page = page.number
         previous_page = current_page - 1 if current_page > 1 else None
         next_page = current_page + 1 if current_page < total_pages else None
-
         return Response(
             {
                 "message": messages.get_success_message(),
                 "error": False,
                 "code": 200,
-                "result": data,
+                "results": data,
                 "pagination": {
                     "total_items": total_items,
                     "total_pages": total_pages,
                     "current_page": current_page,
-                    "offset": offset,
                     "limit": page_size,
                     "next": next_page,
                     "previous": previous_page,

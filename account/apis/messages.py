@@ -7,4 +7,12 @@ def get_failed_message():
 
 
 def get_not_found_message():
-    return "No matching results found"
+    return "No matching results found."
+
+
+def get_login_failed_message():
+    return "Token is invalid Please login Again."
+
+
+def get_refresh_token_required_message():
+    return "Refresh token is required."
