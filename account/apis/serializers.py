@@ -68,16 +68,10 @@ class ProjectsSerializer(serializers.ModelSerializer):
 
 class PermissionsSerializer(serializers.ModelSerializer):
     permissions = UserDatasSerializer()
-    user_id = serializers.CharField(source="users.id")
+    user_id = serializers.IntegerField(source="users.id")
     employee_id = serializers.CharField(source="users.employee_id", read_only=True)
-
     project = serializers.CharField(source="project.project_name")
-    # role = serializers.CharField(source='get_role_display')
-    # status = serializers.ChoiceField(choices=UserData.STATUS_CHOICES)
-    # role = RoleSerializer()
-    # role = serializers.CharField(source="role.role")
     role = serializers.CharField(source="role.get_role_display")
-    # status = serializers.CharField(source='get_status_display')
 
     class Meta:
         model = UserData
@@ -94,7 +88,6 @@ class PermissionsSerializer(serializers.ModelSerializer):
 
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
-
     default_error_messages = {"bad_token": {"Token is expired or Invalid"}}
 
     def save(self, *args, **kwargs):

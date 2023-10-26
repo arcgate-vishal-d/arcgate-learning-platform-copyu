@@ -50,7 +50,7 @@ class Project(AbstractTable):
 class User(AbstractUser):
     username = models.CharField(max_length=200)
     email = models.EmailField(unique=True)
-    employee_id = models.CharField(unique=True, default="True", max_length=30)
+    employee_id = models.CharField(unique=True, max_length=30)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username", "employee_id"]
 
@@ -75,14 +75,8 @@ class UserData(AbstractTable):
     full_name = models.CharField(max_length=50, null=False, blank=False, default=True)
     status = models.BooleanField(default=True)
 
-    # STATUS_CHOICES = ((0, "Active"), (1, "Inactive"))
-    # status = models.IntegerField(choices=STATUS_CHOICES, default=0)
-
     class Meta:
         db_table = "user_data"
-
-    # def get_status_display(self):
-    #     return dict(UserData.STATUS_CHOICES).get(self.status, self.status)
 
     def __str__(self):
         return str(self.users.username)

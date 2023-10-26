@@ -20,7 +20,7 @@ from account.models import Role, Project, User, Permission, UserData
 roles_data = [
     {"role": 1},
     {"role": 2},
-    {"role":3},
+    {"role": 3},
     {"role": 4},
     {"role": 5},
 ]

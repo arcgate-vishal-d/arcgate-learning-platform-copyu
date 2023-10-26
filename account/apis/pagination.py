@@ -89,7 +89,6 @@ class PaginationHandlerMixin(object):
         return Response(
             {
                 "message": messages.get_success_message(),
-                "error": False,
                 "code": 200,
                 "results": data,
                 "pagination": {
