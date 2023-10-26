@@ -85,7 +85,8 @@ class BasicPagination(PageNumberPagination):
 
 class UserListing(APIView, PaginationHandlerMixin):
     permission_classes = [IsAuthenticated]
-    def get(self, request, *args, **kwargs): 
+
+    def get(self, request, *args, **kwargs):
         search_query = self.request.query_params.get("search")
         ordering = self.request.query_params.get("ordering", "id")
         role_filter = self.request.query_params.get("role")
@@ -209,7 +210,6 @@ class UserDetail(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, user_id):
-        
         try:
             user_data = UserData.objects.filter(users_id=user_id)
 
@@ -235,7 +235,7 @@ class UserDetail(APIView):
                 response_data = responses.detail_success_response(
                     common_data, project_data
                 )
-                
+
                 response_data = responses.success_response(serializer.data)
                 return Response(response_data, status=status.HTTP_200_OK)
 
