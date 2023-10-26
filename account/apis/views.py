@@ -19,9 +19,6 @@ from account.apis import responses
 from account.apis.pagination import PaginationHandlerMixin
 
 
-# login_flag = False
-
-
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -39,8 +36,6 @@ class Login(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         token = get_tokens_for_user(user)
-        # global login_flag
-        # login_flag = True
         return Response({"token": token}, status=status.HTTP_200_OK)
 
 
@@ -66,7 +61,6 @@ class TokenRefreshView(APIView):
 class LogoutView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    # global login_flag
 
     def post(self, request):
         try:
@@ -77,9 +71,6 @@ class LogoutView(APIView):
 
             token = RefreshToken(refresh_token)
             token.blacklist()
-            # global login_flag
-            # login_flag = False
-
             response_data = responses.logout_response()
             return Response(response_data, status=status.HTTP_200_OK)
 
@@ -93,18 +84,15 @@ class BasicPagination(PageNumberPagination):
 
 
 class UserListing(APIView, PaginationHandlerMixin):
-    # global login_flag
     permission_classes = [IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        # if login_flag == True:
+    def get(self, request, *args, **kwargs): 
         search_query = self.request.query_params.get("search")
         ordering = self.request.query_params.get("ordering", "id")
         role_filter = self.request.query_params.get("role")
         project_filter = self.request.query_params.get("project")
         status_filter = self.request.query_params.get("status")
         empid_filter = self.request.query_params.get("employee_id")
-        fullName_filter = self.request.query_params.get("full_name")
+        full_name_filter = self.request.query_params.get("full_name")
 
         valid_ordering_fields = [
             "project__project_name",
@@ -129,13 +117,13 @@ class UserListing(APIView, PaginationHandlerMixin):
             users_info = users_info.filter(project__project_name=project_filter)
 
         if status_filter:
-            users_info = users_info.filter(status__icontains=status_filter)
+            users_info = users_info.filter(status=status_filter)
 
         if empid_filter:
             users_info = users_info.filter(users__employee_id=empid_filter)
 
-        if fullName_filter:
-            users_info = users_info.filter(full_name__icontains=fullName_filter)
+        if full_name_filter:
+            users_info = users_info.filter(full_name__icontains=full_name_filter)
 
         if role_filter:
             users_info = users_info.filter(role__role__icontains=role_filter)
@@ -221,6 +209,7 @@ class UserDetail(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, user_id):
+        
         try:
             user_data = UserData.objects.filter(users_id=user_id)
 
@@ -246,10 +235,12 @@ class UserDetail(APIView):
                 response_data = responses.detail_success_response(
                     common_data, project_data
                 )
+                
+                response_data = responses.success_response(serializer.data)
                 return Response(response_data, status=status.HTTP_200_OK)
 
             else:
-                response_data = responses.error_response()
+                response_data = responses.failed_response()
                 return Response(response_data, status=status.HTTP_200_OK)
         except:
             response_data = responses.error_response()

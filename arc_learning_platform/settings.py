@@ -1,10 +1,9 @@
 from pathlib import Path
+from django.conf import settings
 import environ
 import sentry_sdk
 from datetime import timedelta
-from django.conf import settings
 from account.apis.constants import PAGE_SIZE
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -143,10 +142,6 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
     "PAGE_SIZE": PAGE_SIZE,
 }
 

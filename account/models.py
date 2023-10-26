@@ -72,11 +72,11 @@ class UserData(AbstractTable):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
     permissions = models.ForeignKey(Permission, on_delete=models.CASCADE)
-    full_name = models.CharField(max_length=50, null=False, blank=False, default=True)
+    full_name = models.CharField(max_length=50, null=False, blank=False)
     status = models.BooleanField(default=True)
 
     class Meta:
-        db_table = "user_data"
+        db_table = "user_datas"
 
     def __str__(self):
         return str(self.users.username)
