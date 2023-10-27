@@ -24,10 +24,9 @@ class CustomPagination(pagination.PageNumberPagination):
 
         valid_ordering_fields = [
             "project__project_name",
-            "permission__emp_id",
-            "status",
+            "users__fullname" "status",
             "users__username",
-            "fullName" "id",
+            "id",
         ]
         if ordering.lstrip("-") not in valid_ordering_fields:
             ordering = "id"
@@ -35,8 +34,13 @@ class CustomPagination(pagination.PageNumberPagination):
         return ordering
 
     def paginate_queryset(self, queryset, request, view=None):
-        ordering = self.get_ordering(request)
-        queryset = queryset.order_by(ordering)
+        offset = request.query_params.get(self.page_query_param)
+        ordering = request.query_params.get("ordering", "id")
+
+        if offset is not None:
+            self.offset = offset
+        if ordering is not None:
+            self.ordering = ordering
         return super().paginate_queryset(queryset, request, view)
 
     def get_paginated_response(self, data):
@@ -86,7 +90,6 @@ class PaginationHandlerMixin(object):
         return Response(
             {
                 "message": messages.get_success_message(),
-                "error": False,
                 "code": 200,
                 "results": data,
                 "pagination": {

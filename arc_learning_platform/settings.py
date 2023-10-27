@@ -3,7 +3,6 @@ from django.conf import settings
 import environ
 import sentry_sdk
 from datetime import timedelta
-
 from account.apis.constants import PAGE_SIZE
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -154,7 +153,7 @@ REST_FRAMEWORK = {
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=3),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,

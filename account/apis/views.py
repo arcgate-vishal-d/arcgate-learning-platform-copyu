@@ -19,9 +19,6 @@ from account.apis import responses
 from account.apis.pagination import PaginationHandlerMixin
 
 
-login_flag = False
-
-
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -39,8 +36,6 @@ class Login(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         token = get_tokens_for_user(user)
-        global login_flag
-        login_flag = True
         return Response({"token": token}, status=status.HTTP_200_OK)
 
 
@@ -66,7 +61,6 @@ class TokenRefreshView(APIView):
 class LogoutView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    global login_flag
 
     def post(self, request):
         try:
@@ -77,16 +71,12 @@ class LogoutView(APIView):
 
             token = RefreshToken(refresh_token)
             token.blacklist()
-            global login_flag
-            login_flag = False
+            response_data = responses.logout_response()
+            return Response(response_data, status=status.HTTP_200_OK)
 
-            return Response(
-                {"message": "Logout successfully."}, status=status.HTTP_200_OK
-            )
         except Exception as e:
-            return Response(
-                {"message": "Invalid Token."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            response_data = responses.invalid_token_response()
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
 
 class BasicPagination(PageNumberPagination):
@@ -94,14 +84,9 @@ class BasicPagination(PageNumberPagination):
 
 
 class UserListing(APIView, PaginationHandlerMixin):
-    global login_flag
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        if not login_flag:
-            response_data = responses.login_failed_response()
-            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
-
         search_query = self.request.query_params.get("search")
         ordering = self.request.query_params.get("ordering", "id")
         role_filter = self.request.query_params.get("role")
@@ -139,10 +124,10 @@ class UserListing(APIView, PaginationHandlerMixin):
             users_info = users_info.filter(users__employee_id=empid_filter)
 
         if full_name_filter:
-            users_info = users_info.filter(fullname__icontains=full_name_filter)
+            users_info = users_info.filter(full_name__icontains=full_name_filter)
 
         if role_filter:
-            users_info = users_info.filter(role__role=role_filter)
+            users_info = users_info.filter(role__role__icontains=role_filter)
 
         users_info = users_info.order_by(ordering)
 
@@ -174,17 +159,13 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
     @transaction.atomic
     def put(self, request, *args, **kwargs):
         updated_data = request.data
+        updated_users = []
 
         if isinstance(updated_data, list):
             try:
                 for item in updated_data:
                     employee_id = item.get("employee_id")
                     new_status = item.get("status")
-                    if new_status not in ["Active", "Inactive"]:
-                        return Response(
-                            {"message": "Invalid value for 'status' field"},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
 
                     new_permissions_data = item.get("permissions")
                     project_name = item.get("project")
@@ -211,32 +192,49 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
                         )
                         permissions.save()
 
-            except UserData.DoesNotExist:
-                response_data = responses.user_data_not_found_response()
+                        updated_users.append(user_data)
+                response_data = responses.bulk_update_success_response(
+                    updated_users, len(updated_data)
+                )
                 return Response(response_data, status=status.HTTP_200_OK)
 
-            return Response(
-                {"message": f"Updated {len(updated_data)} user's data successfully"},
-                status=status.HTTP_200_OK,
-            )
+            except UserData.DoesNotExist:
+                response_data = responses.failed_response()
+                return Response(response_data, status=status.HTTP_200_OK)
 
-        response_data = responses.invalid_data_formate_response()
+        response_data = responses.failed_response()
         return Response(response_data, status=status.HTTP_200_OK)
 
 
 class UserDetail(APIView):
     permission_classes = [IsAuthenticated]
-    global login_flag
 
     def get(self, request, user_id):
-        if not login_flag:
-            response_data = responses.login_failed_response()
-            return Response(response_data, status=status.HTTP_200_OK)
         try:
             user_data = UserData.objects.filter(users_id=user_id)
 
             if user_data.exists():
                 serializer = PermissionsSerializer(user_data, many=True)
+
+                if serializer.data:
+                    common_data = {
+                        "employee_id": serializer.data[0]["employee_id"],
+                        "user_id": serializer.data[0]["user_id"],
+                        "full_name": serializer.data[0]["full_name"],
+                    }
+
+                project_data = []
+                for item in serializer.data:
+                    project_data.append(
+                        {
+                            "project": item["project"],
+                            "permissions": item["permissions"],
+                        }
+                    )
+
+                response_data = responses.detail_success_response(
+                    common_data, project_data
+                )
 
                 response_data = responses.success_response(serializer.data)
                 return Response(response_data, status=status.HTTP_200_OK)

@@ -33,7 +33,7 @@ class Role(AbstractTable):
         db_table = "roles"
 
     def __str__(self):
-        return f"{self.get_role_display_str()}"
+        return f"{self.get_role_display()}"
 
 
 class Project(AbstractTable):
@@ -50,10 +50,9 @@ class Project(AbstractTable):
 class User(AbstractUser):
     username = models.CharField(max_length=200)
     email = models.EmailField(unique=True)
-    employee_id = models.CharField(unique=True, default="True", max_length=30)
-
+    employee_id = models.CharField(unique=True, max_length=30)
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username"]
+    REQUIRED_FIELDS = ["username", "employee_id"]
 
     def __str__(self):
         return self.email
