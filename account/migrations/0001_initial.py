@@ -174,16 +174,16 @@ class Migration(migrations.Migration):
                 (
                     "role",
                     models.IntegerField(
-                    models.IntegerField(
-                        choices=[
-                            (1, "Super Admin"),
-                            (2, "Project Manager"),
-                            (3, "Assistant Project Manager"),
-                            (4, "Team Lead"),
-                            (5, "Agent"),
-                        ]
+                        models.IntegerField(
+                            choices=[
+                                (1, "Super Admin"),
+                                (2, "Project Manager"),
+                                (3, "Assistant Project Manager"),
+                                (4, "Team Lead"),
+                                (5, "Agent"),
+                            ]
+                        ),
                     ),
-                ),
                 ),
             ],
             options={

@@ -17,6 +17,7 @@ from account.apis.serializers import (
 from account.models import UserData
 from account.apis import responses
 from account.apis.pagination import PaginationHandlerMixin
+from account.apis.constants import PAGE_SIZE
 
 
 def get_tokens_for_user(user):
@@ -108,6 +109,17 @@ class UserListing(APIView, PaginationHandlerMixin):
             ordering = "id"
 
         users_info = UserData.objects.all()
+        try:
+            page_number = int(request.query_params.get('page'))
+            total_count = users_info.count()
+            temp = (total_count//PAGE_SIZE)
+            if temp%2 == 1:
+                temp += 1
+            if page_number > temp:
+                response_data = responses.error_response()
+                return Response(response_data, status=status.HTTP_200_OK)
+        except:
+            pass
 
         if search_query:
             users_info = users_info.filter(
