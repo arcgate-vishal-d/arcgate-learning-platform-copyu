@@ -65,3 +65,10 @@ def detail_success_response(common_data, project_data):
         **common_data,
         "projects": project_data,
     }
+
+
+def get_not_found_message(pagination_data=None):
+    message = {'message': messages.get_not_found_message(), 'code': 200, 'results': []}
+    if pagination_data:
+        message['pagination'] = pagination_data
+    return message
