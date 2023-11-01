@@ -18,7 +18,6 @@ from account.models import UserData
 from account.apis import responses
 from account.apis.pagination import PaginationHandlerMixin
 from account.apis.constants import PAGE_SIZE
-from .pagination import CustomPagination 
 
 
 def get_tokens_for_user(user):
@@ -61,8 +60,8 @@ class TokenRefreshView(APIView):
 
 
 class LogoutView(APIView):
-    # authentication_classes = [JWTAuthentication]
-    # permission_classes = [IsAuthenticated]e
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         try:
@@ -86,7 +85,7 @@ class BasicPagination(PageNumberPagination):
 
 
 class UserListing(APIView, PaginationHandlerMixin):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         search_query = self.request.query_params.get("search")
@@ -110,45 +109,29 @@ class UserListing(APIView, PaginationHandlerMixin):
             ordering = "id"
 
         users_info = UserData.objects.all()
-        # try:
-        #     page_number = int(request.query_params.get('page'))
-        #     print(page_number)
-        #     total_count = users_info.count()
-        #     temp = (total_count//PAGE_SIZE)
-        #     if temp%2 == 1:
-        #         temp += 1
-        #     if page_number > temp:
-        #         response_data = responses.error_response()
-        #         return Response(response_data, status=status.HTTP_200_OK)
-            
-        # except:
-        #         # response_data = responses.error_response()
-        #         # return Response(response_data, status=status.HTTP_200_OK)
-        #         pass
-        # try:
-        #     page_number = int(request.query_params.get('page'))
-        #     total_count = users_info.count()
-        #     temp = (total_count // PAGE_SIZE)
-        #     if temp % 2 == 1:
-        #         temp += 1
-        #     if page_number > temp:
-                
-        #         pagination_data = {
-        #             'total_items': total_count,
-        #             'total_pages': temp,
-        #             'current_page': page_number,
-        #             'limit': PAGE_SIZE,
-        #             'next': None,
-        #             'previous': None,
-        #         }
+        try:
+            page_number = int(request.query_params.get("page"))
+            total_count = users_info.count()
+            temp = total_count // PAGE_SIZE
+            if temp % 2 == 1:
+                temp += 1
+            if page_number > temp:
+                pagination_data = {
+                    "total_items": total_count,
+                    "total_pages": temp,
+                    "current_page": page_number,
+                    "limit": PAGE_SIZE,
+                    "next": None,
+                    "previous": None,
+                }
 
-        #         response_data = responses.get_not_found_message(pagination_data)
-        #         return Response(response_data, status=status.HTTP_200_OK)
+                response_data = responses.get_not_found_message_response(
+                    pagination_data
+                )
+                return Response(response_data, status=status.HTTP_200_OK)
 
-        # except ValueError:
-        #     # response_data = responses.error_response()
-        #     # return Response(response_data, status=status.HTTP_200_OK)
-        #     pass
+        except:
+            pass
 
         if search_query:
             users_info = users_info.filter(
@@ -159,7 +142,7 @@ class UserListing(APIView, PaginationHandlerMixin):
             users_info = users_info.filter(project__project_name=project_filter)
 
         if status_filter:
-            users_info = users_info.filter(status=status_filter)
+            users_info = users_info.filter(status__icontains=status_filter)
 
         if empid_filter:
             users_info = users_info.filter(users__employee_id=empid_filter)
@@ -190,12 +173,12 @@ class UserListing(APIView, PaginationHandlerMixin):
                 return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
         else:
             response_data = responses.error_response()
-            return Response(response_data,  status=status.HTTP_200_OK)
+            return Response(response_data, status=status.HTTP_200_OK)
 
 
 class BulkUpdateUserDataView(generics.UpdateAPIView):
     serializer_class = PermissionsSerializer
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     @transaction.atomic
     def put(self, request, *args, **kwargs):
@@ -248,7 +231,7 @@ class BulkUpdateUserDataView(generics.UpdateAPIView):
 
 
 class UserDetail(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, user_id):
         try:
@@ -256,26 +239,6 @@ class UserDetail(APIView):
 
             if user_data.exists():
                 serializer = PermissionsSerializer(user_data, many=True)
-
-                if serializer.data:
-                    common_data = {
-                        "employee_id": serializer.data[0]["employee_id"],
-                        "user_id": serializer.data[0]["user_id"],
-                        "full_name": serializer.data[0]["full_name"],
-                    }
-
-                project_data = []
-                for item in serializer.data:
-                    project_data.append(
-                        {
-                            "project": item["project"],
-                            "permissions": item["permissions"],
-                        }
-                    )
-
-                response_data = responses.detail_success_response(
-                    common_data, project_data
-                )
 
                 response_data = responses.success_response(serializer.data)
                 return Response(response_data, status=status.HTTP_200_OK)
@@ -286,6 +249,3 @@ class UserDetail(APIView):
         except:
             response_data = responses.error_response()
             return Response(response_data, status=status.HTTP_200_OK)
-
-
-
