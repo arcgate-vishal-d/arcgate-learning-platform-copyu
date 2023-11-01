@@ -17,6 +17,7 @@ from account.apis.serializers import (
 from account.models import UserData
 from account.apis import responses
 from account.apis.pagination import PaginationHandlerMixin
+from account.apis.constants import PAGE_SIZE
 
 
 def get_tokens_for_user(user):
@@ -108,6 +109,29 @@ class UserListing(APIView, PaginationHandlerMixin):
             ordering = "id"
 
         users_info = UserData.objects.all()
+        try:
+            page_number = int(request.query_params.get("page"))
+            total_count = users_info.count()
+            temp = total_count // PAGE_SIZE
+            if temp % 2 == 1:
+                temp += 1
+            if page_number > temp:
+                pagination_data = {
+                    "total_items": total_count,
+                    "total_pages": temp,
+                    "current_page": page_number,
+                    "limit": PAGE_SIZE,
+                    "next": None,
+                    "previous": None,
+                }
+
+                response_data = responses.get_not_found_message_response(
+                    pagination_data
+                )
+                return Response(response_data, status=status.HTTP_200_OK)
+
+        except:
+            pass
 
         if search_query:
             users_info = users_info.filter(
@@ -118,7 +142,7 @@ class UserListing(APIView, PaginationHandlerMixin):
             users_info = users_info.filter(project__project_name=project_filter)
 
         if status_filter:
-            users_info = users_info.filter(status=status_filter)
+            users_info = users_info.filter(status__icontains=status_filter)
 
         if empid_filter:
             users_info = users_info.filter(users__employee_id=empid_filter)
@@ -215,26 +239,6 @@ class UserDetail(APIView):
 
             if user_data.exists():
                 serializer = PermissionsSerializer(user_data, many=True)
-
-                if serializer.data:
-                    common_data = {
-                        "employee_id": serializer.data[0]["employee_id"],
-                        "user_id": serializer.data[0]["user_id"],
-                        "full_name": serializer.data[0]["full_name"],
-                    }
-
-                project_data = []
-                for item in serializer.data:
-                    project_data.append(
-                        {
-                            "project": item["project"],
-                            "permissions": item["permissions"],
-                        }
-                    )
-
-                response_data = responses.detail_success_response(
-                    common_data, project_data
-                )
 
                 response_data = responses.success_response(serializer.data)
                 return Response(response_data, status=status.HTTP_200_OK)
