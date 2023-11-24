@@ -19,7 +19,6 @@ from rest_framework import status
 class VideoUploadView(APIView):
         
     def post(self, request):
-        pass
         video_file = request.data['file']
 
         if video_file.content_type.startswith('video'):
@@ -45,6 +44,12 @@ class VideoUploadView(APIView):
                     end_time = min(start_time + chunk_duration_seconds, video_duration)
                     timestamp = int(time.time())  # Generate a timestamp for uniqueness
                     output_file = f'chunk_{chunk_number}_{timestamp}.mp4'
+
+                    Video.objects.create(
+                        file=os.path.join(output_folder, output_file),
+                    )
+
+
                     ffmpeg_extract_subclip(video_file.temporary_file_path(), start_time, end_time, targetname=os.path.join(output_folder, output_file))
                     start_time = end_time
                     chunk_number += 1
