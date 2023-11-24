@@ -9,6 +9,12 @@ def success_response(data):
         "projects": data,
     }
 
+def projects_failed_response():
+    return {
+        "message": messages.get_not_found_message(),
+        "code": 200,
+        "projects": [],
+    }
 
 def failed_response():
     return {

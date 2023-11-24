@@ -20,6 +20,10 @@ from account.apis.pagination import PaginationHandlerMixin
 from account.apis.constants import PAGE_SIZE
 
 
+
+
+role_squences = ['superadmin','Project Manager','assistant_project_manager','team_lead','agent']
+
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -109,6 +113,7 @@ class UserListing(APIView, PaginationHandlerMixin):
             ordering = "id"
 
         users_info = UserData.objects.all()
+
         try:
             page_number = int(request.query_params.get("page"))
             total_count = users_info.count()
@@ -132,6 +137,7 @@ class UserListing(APIView, PaginationHandlerMixin):
 
         except:
             pass
+
 
         if search_query:
             users_info = users_info.filter(
@@ -157,7 +163,7 @@ class UserListing(APIView, PaginationHandlerMixin):
 
         if users_info.exists():
             page = self.paginate_queryset(users_info)
-
+            # serializer = PermissionsSerializer(page, many=True).data
             if page is not None:
                 serializer = PermissionsSerializer(page, many=True).data
                 return self.get_paginated_response(serializer)
@@ -244,8 +250,8 @@ class UserDetail(APIView):
                 return Response(response_data, status=status.HTTP_200_OK)
 
             else:
-                response_data = responses.failed_response()
+                response_data = responses.projects_failed_response()
                 return Response(response_data, status=status.HTTP_200_OK)
         except:
-            response_data = responses.error_response()
+            response_data = responses.projects_failed_response()
             return Response(response_data, status=status.HTTP_200_OK)
